@@ -24,11 +24,14 @@ type ProjectEntry struct {
 	Pinned     bool   `json:"pinned"`
 }
 
-// Preferences holds global UI, auto-discovery, and local AI capture settings.
+// Preferences holds global UI, accessibility, auto-discovery, and local AI capture settings.
 type Preferences struct {
-	Opacity  float64        `json:"opacity"`
-	ScanDirs []string       `json:"scan_dirs"`
-	AI       capture.Config `json:"ai"`
+	Opacity           float64        `json:"opacity"`
+	HighContrast      bool           `json:"high_contrast"`
+	ReduceMotion      bool           `json:"reduce_motion"`
+	ShowHeaderOpacity *bool          `json:"show_header_opacity,omitempty"`
+	ScanDirs          []string       `json:"scan_dirs"`
+	AI                capture.Config `json:"ai"`
 }
 
 // Registry stores known project paths, open tab order, and user preferences.
@@ -55,12 +58,17 @@ func DefaultPath() (string, error) {
 	return filepath.Join(home, ".config", "kingfisher", "registry.json"), nil
 }
 
+func boolPtr(v bool) *bool { return &v }
+
 // DefaultPreferences returns initial Kingfisher defaults.
 func DefaultPreferences() Preferences {
 	return Preferences{
-		Opacity:  0.55,
-		ScanDirs: []string{"~/Documents/programs"},
-		AI:       capture.DefaultConfig(),
+		Opacity:           0.55,
+		HighContrast:      false,
+		ReduceMotion:      false,
+		ShowHeaderOpacity: boolPtr(true),
+		ScanDirs:          []string{"~/Documents/programs"},
+		AI:                capture.DefaultConfig(),
 	}
 }
 
@@ -95,6 +103,9 @@ func Load(path string) (*Registry, error) {
 	}
 	if r.Preferences.AI.Endpoint == "" && r.Preferences.AI.Model == "" && !r.Preferences.AI.Enabled {
 		r.Preferences.AI = capture.DefaultConfig()
+	}
+	if r.Preferences.ShowHeaderOpacity == nil {
+		r.Preferences.ShowHeaderOpacity = boolPtr(true)
 	}
 	if r.Preferences.Opacity < 0 || r.Preferences.Opacity > 0.95 {
 		r.Preferences.Opacity = 0.55

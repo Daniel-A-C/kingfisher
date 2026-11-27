@@ -74,6 +74,9 @@ export interface CaptureResponse {
 
 export interface Preferences {
   opacity: number;
+  high_contrast: boolean;
+  reduce_motion: boolean;
+  show_header_opacity?: boolean;
   scan_dirs: string[];
   ai: AIConfig;
 }

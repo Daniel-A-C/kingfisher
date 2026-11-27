@@ -56,6 +56,7 @@ declare global {
           ): Promise<Board>;
           DeleteTask(projectPath: string, taskID: string): Promise<Board>;
           SetOpacity(opacity: number): Promise<Preferences>;
+          UpdatePreferences(prefs: Preferences): Promise<AppState>;
           UpdateScanDirs(dirs: string[]): Promise<AppState>;
           HideWindow(): Promise<void>;
           MinimizeWindow(): Promise<void>;
@@ -110,6 +111,7 @@ export const api = {
   deleteTask: (projectPath: string, taskID: string) =>
     backend().DeleteTask(projectPath, taskID),
   setOpacity: (opacity: number) => backend().SetOpacity(opacity),
+  updatePreferences: (prefs: Preferences) => backend().UpdatePreferences(prefs),
   updateScanDirs: (dirs: string[]) => backend().UpdateScanDirs(dirs),
   hideWindow: () => backend().HideWindow(),
   minimizeWindow: () => backend().MinimizeWindow(),

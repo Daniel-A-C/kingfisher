@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, subscribeEvents } from './lib/api';
-  import type { AIConfig, AppState, Task, TaskPatch } from './lib/types';
+  import type { AIConfig, AppState, Preferences, Task, TaskPatch } from './lib/types';
   import TabBar from './components/TabBar.svelte';
   import KanbanBoard from './components/KanbanBoard.svelte';
   import QuickCaptureModal from './components/QuickCaptureModal.svelte';
   import TaskDetailDrawer from './components/TaskDetailDrawer.svelte';
   import ProjectSwitcherModal from './components/ProjectSwitcherModal.svelte';
+  import SettingsModal from './components/SettingsModal.svelte';
 
   let appState = $state<AppState>({
     projects: [],
@@ -16,6 +17,9 @@
     errors: {},
     preferences: {
       opacity: 0.55,
+      high_contrast: false,
+      reduce_motion: false,
+      show_header_opacity: true,
       scan_dirs: ['~/Documents/programs'],
       ai: {
         enabled: true,
@@ -27,6 +31,7 @@
   });
 
   let switcherOpen = $state(false);
+  let settingsOpen = $state(false);
   let captureOpen = $state(false);
   let captureColumn = $state('ready');
   let selectedTaskID = $state<string | null>(null);
@@ -50,7 +55,7 @@
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => {
       toastMessage = null;
-    }, 3200);
+    }, 3400);
   }
 
   function applyOpacityVar(val: number) {
@@ -97,6 +102,13 @@
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
           target.isContentEditable);
+
+      // Cmd + , -> Settings & Accessibility
+      if (meta && !e.shiftKey && e.key === ',') {
+        e.preventDefault();
+        settingsOpen = true;
+        return;
+      }
 
       // Cmd + 1..9 browser-style tab jumping
       if (meta && !e.shiftKey && !e.altKey && e.key >= '1' && e.key <= '9') {
@@ -151,7 +163,14 @@
       }
 
       // Single-key shortcuts when not typing and no modal open
-      if (!meta && !isTyping && !switcherOpen && !captureOpen && !selectedTaskID) {
+      if (
+        !meta &&
+        !isTyping &&
+        !switcherOpen &&
+        !settingsOpen &&
+        !captureOpen &&
+        !selectedTaskID
+      ) {
         if (e.key === 'n' && activeBoard) {
           e.preventDefault();
           captureColumn = 'ready';
@@ -214,6 +233,22 @@
       preferences: { ...appState.preferences, opacity: value },
     };
     await api.setOpacity(value);
+  }
+
+  function handleLivePreviewPrefs(partial: Partial<Preferences>) {
+    if (partial.opacity !== undefined) {
+      applyOpacityVar(partial.opacity);
+    }
+    appState = {
+      ...appState,
+      preferences: { ...appState.preferences, ...partial },
+    };
+  }
+
+  async function handleSavePreferences(prefs: Preferences) {
+    applyOpacityVar(prefs.opacity);
+    appState = await api.updatePreferences(prefs);
+    showToast('✦ Preferences saved');
   }
 
   async function handleCaptureTask(rawContext: string, defaultStatus: string) {
@@ -282,23 +317,59 @@
   }
 </script>
 
-<main class="kf-shell">
-  <!-- Art Nouveau Botanical Corner Filigree -->
+<main
+  class="kf-shell"
+  class:high-contrast={appState.preferences.high_contrast}
+  class:reduce-motion={appState.preferences.reduce_motion}
+>
+  <!-- Lush Maximalist Art Nouveau Botanical Corner Cartouches -->
   {#each ['tl', 'tr', 'bl', 'br'] as pos}
-    <svg class="kf-corner {pos}" viewBox="0 0 60 60" aria-hidden="true">
+    <svg class="kf-corner {pos}" viewBox="0 0 90 90" aria-hidden="true">
+      <!-- Outer whiplash framing scroll -->
       <path
-        d="M3 46 C3 16, 16 3, 46 3"
+        d="M4 76 C4 26, 26 4, 76 4"
         fill="none"
-        stroke="rgba(242, 204, 126, 0.72)"
-        stroke-width="1.4"
+        stroke="rgba(246, 211, 136, 0.82)"
+        stroke-width="1.8"
       />
+      <!-- Secondary gilded vine curl -->
       <path
-        d="M8 34 C10 18, 18 10, 34 8"
+        d="M11 64 C11 32, 32 11, 64 11"
         fill="none"
-        stroke="rgba(65, 211, 230, 0.55)"
+        stroke="rgba(220, 162, 72, 0.65)"
+        stroke-width="1.1"
+      />
+      <!-- Organic acanthus / iris whiplash tendril -->
+      <path
+        d="M6 52 C22 48, 28 32, 22 22 C32 28, 48 22, 52 6"
+        fill="none"
+        stroke="rgba(70, 217, 236, 0.62)"
+        stroke-width="1.2"
+      />
+      <!-- Stained-glass petal inlay -->
+      <path
+        d="M10 10 C22 10, 28 18, 22 22 C18 28, 10 22, 10 10 Z"
+        fill="rgba(30, 168, 184, 0.34)"
+        stroke="#f6d388"
         stroke-width="1"
       />
-      <circle cx="11" cy="11" r="2.2" fill="#f2cc7e" />
+      <!-- Corner jewel beads -->
+      <circle cx="15" cy="15" r="3" fill="#46d9ec" stroke="#f6d388" stroke-width="0.9" />
+      <circle cx="34" cy="11" r="1.8" fill="#f6d388" />
+      <circle cx="11" cy="34" r="1.8" fill="#f6d388" />
+    </svg>
+  {/each}
+
+  <!-- Vertical side vine rails -->
+  {#each ['left', 'right'] as side}
+    <svg class="kf-side-rail {side}" viewBox="0 0 12 400" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d="M5 0 C10 50, 1 100, 6 150 C11 200, 1 250, 6 300 C10 350, 2 380, 5 400"
+        fill="none"
+        stroke="rgba(220, 162, 72, 0.55)"
+        stroke-width="1.1"
+      />
+      <circle cx="6" cy="200" r="2.2" fill="#46d9ec" />
     </svg>
   {/each}
 
@@ -307,17 +378,16 @@
     activeTab={appState.active_tab}
     boards={appState.boards}
     opacity={appState.preferences.opacity}
+    showHeaderOpacity={appState.preferences.show_header_opacity ?? true}
     onSelectTab={handleSelectTab}
     onCloseTab={handleCloseTab}
     onOpenSwitcher={() => (switcherOpen = true)}
+    onOpenSettings={() => (settingsOpen = true)}
     onQuickCapture={() => {
       captureColumn = 'ready';
       captureOpen = true;
     }}
     onOpacityChange={handleOpacityChange}
-    onHide={() => api.hideWindow()}
-    onMinimize={() => api.minimizeWindow()}
-    onMaximize={() => api.toggleMaximizeWindow()}
   />
 
   {#if activeBoard}
@@ -386,6 +456,14 @@
     onInitFolder={handleInitFolder}
     onRescan={handleRescan}
   />
+
+  <SettingsModal
+    open={settingsOpen}
+    preferences={appState.preferences}
+    onClose={() => (settingsOpen = false)}
+    onLivePreview={handleLivePreviewPrefs}
+    onSave={handleSavePreferences}
+  />
 </main>
 
 <style>
@@ -404,29 +482,30 @@
     text-align: center;
     gap: 12px;
     max-width: 460px;
-    padding: 40px 36px;
-    border-radius: 160px 160px 24px 24px;
-    border: 1.5px solid var(--kf-lead-gold);
+    padding: 44px 38px;
+    border-radius: 170px 170px 26px 26px;
+    border: 2px solid var(--kf-lead-gold-bright);
     background: linear-gradient(
       180deg,
-      rgba(16, 44, 46, calc(var(--kf-opacity) * 0.85 + 0.16)) 0%,
-      rgba(8, 22, 22, calc(var(--kf-opacity) * 0.82 + 0.12)) 100%
+      rgba(16, 46, 48, calc(var(--kf-opacity) * 0.88 + 0.18)) 0%,
+      rgba(7, 21, 21, calc(var(--kf-opacity) * 0.85 + 0.14)) 100%
     );
     box-shadow:
-      0 18px 48px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(242, 204, 126, 0.32);
+      0 22px 54px rgba(0, 0, 0, 0.42),
+      inset 0 0 0 4px rgba(220, 162, 72, 0.14),
+      inset 0 1px 0 rgba(246, 211, 136, 0.42);
   }
 
   .aviary-glyph {
-    font-size: 28px;
+    font-size: 30px;
     color: var(--kf-cerulean);
   }
 
   .aviary-title {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 32px;
-    letter-spacing: 0.14em;
+    font-size: 34px;
+    letter-spacing: 0.16em;
     color: var(--kf-ochre);
     font-weight: 600;
   }
@@ -451,13 +530,15 @@
     bottom: 22px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 8px 16px;
+    padding: 8px 18px;
     border-radius: 999px;
-    border: 1px solid var(--kf-cerulean);
-    background: rgba(10, 30, 32, 0.92);
+    border: 1.5px solid var(--kf-cerulean);
+    background: rgba(9, 28, 30, 0.94);
     color: var(--kf-ivory);
     font-size: 12.5px;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.55),
+      0 0 14px rgba(70, 217, 236, 0.22);
     z-index: 100;
   }
 </style>

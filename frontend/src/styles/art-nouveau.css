@@ -1,39 +1,42 @@
 :root {
   /* Kingfisher Jewel-Tone Art Nouveau Palette */
   --kf-teal: #1ea8b8;
-  --kf-cerulean: #41d3e6;
-  --kf-teal-deep: #0f5f6b;
-  --kf-gold: #d9a14a;
-  --kf-ochre: #f2cc7e;
-  --kf-copper: #b96b36;
-  --kf-vermilion: #e45d3a;
-  --kf-sage: #5ea88a;
+  --kf-cerulean: #46d9ec;
+  --kf-teal-deep: #0c5864;
+  --kf-gold: #dca248;
+  --kf-ochre: #f6d388;
+  --kf-antique-gold: #9d712d;
+  --kf-copper: #c46d34;
+  --kf-vermilion: #e65d38;
+  --kf-emerald: #2f9e7a;
+  --kf-amethyst: #9f79c8;
+  --kf-sage: #6bb594;
 
   /* Translucent stained-glass base RGBs */
-  --kf-moss-rgb: 8, 22, 22;
-  --kf-patina-rgb: 14, 35, 34;
-  --kf-card-rgb: 12, 28, 29;
+  --kf-moss-rgb: 7, 21, 21;
+  --kf-patina-rgb: 13, 35, 34;
+  --kf-card-rgb: 11, 28, 29;
   --kf-opacity: 0.55;
 
-  /* Warm ivory typography for crisp legibility over wallpapers */
-  --kf-ivory: #f6efe0;
-  --kf-ivory-soft: #d7ccb6;
-  --kf-ivory-dim: #9db0a8;
+  /* Warm parchment / ivory typography for crisp legibility over wallpapers */
+  --kf-ivory: #f8f1e2;
+  --kf-ivory-soft: #ded2bc;
+  --kf-ivory-dim: #a8bbb3;
 
-  /* Borders & leaded glass lines */
-  --kf-lead-gold: rgba(217, 161, 74, 0.52);
-  --kf-lead-gold-bright: rgba(242, 204, 126, 0.82);
-  --kf-lead-teal: rgba(65, 211, 230, 0.58);
-  --kf-lead-subtle: rgba(217, 161, 74, 0.24);
+  /* Leaded stained-glass borders */
+  --kf-lead-gold: rgba(220, 162, 72, 0.62);
+  --kf-lead-gold-bright: rgba(246, 211, 136, 0.88);
+  --kf-lead-teal: rgba(70, 217, 236, 0.65);
+  --kf-lead-subtle: rgba(220, 162, 72, 0.28);
 
-  /* Typography */
+  /* Expressive Art Nouveau typography */
   --font-display: 'Didot', 'Bodoni 72', 'Baskerville', 'Palatino', Georgia, serif;
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
   /* Scrollbar tokens */
-  --scrollbar-thumb: rgba(217, 161, 74, 0.55);
-  --scrollbar-track: rgba(8, 22, 22, 0.22);
+  --scrollbar-thumb: rgba(220, 162, 72, 0.62);
+  --scrollbar-track: rgba(7, 21, 21, 0.24);
 }
 
 *,
@@ -57,46 +60,88 @@ body,
   overflow: hidden;
 }
 
-/* Outer stained-glass window shell */
+/* Outer stained-glass window shell — sits cleanly inside native macOS rounded window */
 .kf-shell {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: radial-gradient(
-      ellipse at 18% 0%,
-      rgba(30, 168, 184, calc(var(--kf-opacity) * 0.28)) 0%,
-      transparent 55%
+  background:
+    radial-gradient(
+      ellipse at 14% 0%,
+      rgba(30, 168, 184, calc(var(--kf-opacity) * 0.34 + 0.05)) 0%,
+      transparent 52%
     ),
     radial-gradient(
-      ellipse at 85% 100%,
-      rgba(185, 107, 54, calc(var(--kf-opacity) * 0.24)) 0%,
-      transparent 55%
+      ellipse at 86% 6%,
+      rgba(220, 162, 72, calc(var(--kf-opacity) * 0.22 + 0.03)) 0%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 50% 100%,
+      rgba(196, 109, 52, calc(var(--kf-opacity) * 0.26 + 0.04)) 0%,
+      transparent 58%
     ),
     rgba(var(--kf-moss-rgb), var(--kf-opacity));
   border: 1.5px solid var(--kf-lead-gold);
-  border-radius: 14px;
+  border-radius: 10px;
   box-shadow:
-    inset 0 0 0 1px rgba(242, 204, 126, 0.14),
-    inset 0 1px 24px rgba(65, 211, 230, 0.08);
+    inset 0 0 0 4px rgba(10, 26, 26, calc(var(--kf-opacity) * 0.45)),
+    inset 0 0 0 5px rgba(246, 211, 136, 0.24),
+    inset 0 1px 28px rgba(70, 217, 236, 0.1);
   overflow: hidden;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.72);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.78);
 }
 
-/* Corner botanical filigree overlays */
+/* Accessibility: High-Contrast mode */
+.kf-shell.high-contrast {
+  --kf-ivory: #fffdf7;
+  --kf-ivory-soft: #f0e6d2;
+  --kf-ivory-dim: #d2dfd9;
+  --kf-lead-gold: rgba(246, 211, 136, 0.88);
+  --kf-lead-gold-bright: #ffe29e;
+  --kf-lead-teal: rgba(114, 236, 250, 0.9);
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.75);
+}
+
+/* Accessibility: Reduce Motion */
+.kf-shell.reduce-motion *,
+.kf-shell.reduce-motion *::before,
+.kf-shell.reduce-motion *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Ornate Art Nouveau botanical corner cartouches */
 .kf-corner {
   position: absolute;
-  width: 48px;
-  height: 48px;
+  width: 82px;
+  height: 82px;
   pointer-events: none;
   z-index: 20;
-  opacity: 0.72;
+  opacity: 0.86;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.55));
 }
-.kf-corner.tl { top: 4px; left: 4px; }
-.kf-corner.tr { top: 4px; right: 4px; transform: scaleX(-1); }
-.kf-corner.bl { bottom: 4px; left: 4px; transform: scaleY(-1); }
-.kf-corner.br { bottom: 4px; right: 4px; transform: scale(-1); }
+.kf-corner.tl { top: 2px; left: 2px; }
+.kf-corner.tr { top: 2px; right: 2px; transform: scaleX(-1); }
+.kf-corner.bl { bottom: 2px; left: 2px; transform: scaleY(-1); }
+.kf-corner.br { bottom: 2px; right: 2px; transform: scale(-1); }
+
+/* Delicate gilded side filigree rails */
+.kf-side-rail {
+  position: absolute;
+  top: 90px;
+  bottom: 90px;
+  width: 10px;
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0.5;
+}
+.kf-side-rail.left { left: 2px; }
+.kf-side-rail.right { right: 2px; transform: scaleX(-1); }
 
 /* Scrollbars (standard + WebKit fallback per modern-web-guidance) */
 .kf-scroll {
@@ -121,21 +166,21 @@ body,
   }
 }
 
-/* Native <dialog> modal styling */
+/* Native <dialog> modal styling — ornate leaded-glass frame */
 dialog.kf-dialog {
   padding: 0;
-  border: 1.5px solid var(--kf-lead-gold-bright);
-  border-radius: 16px;
-  background: linear-gradient(
-      165deg,
-      rgba(16, 40, 40, 0.94) 0%,
-      rgba(8, 22, 22, 0.96) 100%
-    );
+  border: 2px solid var(--kf-lead-gold-bright);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(30, 168, 184, 0.2), transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(196, 109, 52, 0.16), transparent 55%),
+    linear-gradient(165deg, rgba(14, 38, 39, 0.96) 0%, rgba(7, 20, 21, 0.98) 100%);
   color: var(--kf-ivory);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(65, 211, 230, 0.16),
-    inset 0 1px 0 rgba(242, 204, 126, 0.28);
+    0 28px 72px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(70, 217, 236, 0.22),
+    inset 0 0 0 4px rgba(220, 162, 72, 0.12),
+    inset 0 1px 0 rgba(246, 211, 136, 0.4);
   max-width: min(640px, 92vw);
   width: 100%;
   max-height: 86vh;
@@ -153,7 +198,7 @@ dialog.kf-dialog.kf-drawer {
   max-width: min(520px, 92vw);
   height: calc(100vh - 24px);
   max-height: calc(100vh - 24px);
-  border-radius: 16px;
+  border-radius: 20px;
 }
 
 dialog:modal {
@@ -161,34 +206,46 @@ dialog:modal {
 }
 
 dialog::backdrop {
-  background: rgba(4, 12, 13, 0.56);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(4, 12, 13, 0.6);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
   overflow: hidden;
   overscroll-behavior: contain;
 }
 
-/* Shared button & form styling */
+/* Shared ornate button & form styling */
 .kf-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 13px;
+  padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid var(--kf-lead-gold);
-  background: rgba(217, 161, 74, 0.12);
+  background: linear-gradient(
+    180deg,
+    rgba(220, 162, 72, 0.18) 0%,
+    rgba(157, 113, 45, 0.12) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(246, 211, 136, 0.26);
   color: var(--kf-ivory);
   font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, transform 120ms ease;
+  transition: background 140ms ease, border-color 140ms ease, transform 120ms ease, box-shadow 140ms ease;
 }
 
 .kf-btn:hover {
-  background: rgba(217, 161, 74, 0.24);
+  background: linear-gradient(
+    180deg,
+    rgba(246, 211, 136, 0.28) 0%,
+    rgba(220, 162, 72, 0.18) 100%
+  );
   border-color: var(--kf-ochre);
+  box-shadow:
+    0 0 12px rgba(220, 162, 72, 0.22),
+    inset 0 1px 0 rgba(246, 211, 136, 0.42);
 }
 
 .kf-btn:active {
@@ -196,24 +253,28 @@ dialog::backdrop {
 }
 
 .kf-btn-primary {
-  background: linear-gradient(135deg, rgba(30, 168, 184, 0.34), rgba(15, 95, 107, 0.52));
+  background: linear-gradient(135deg, rgba(30, 168, 184, 0.42), rgba(12, 88, 100, 0.62));
   border-color: var(--kf-cerulean);
   color: #ffffff;
+  box-shadow:
+    0 0 12px rgba(70, 217, 236, 0.18),
+    inset 0 1px 0 rgba(180, 246, 255, 0.36);
 }
 
 .kf-btn-primary:hover {
-  background: linear-gradient(135deg, rgba(65, 211, 230, 0.42), rgba(30, 168, 184, 0.6));
-  border-color: #7ee8f5;
+  background: linear-gradient(135deg, rgba(70, 217, 236, 0.5), rgba(30, 168, 184, 0.68));
+  border-color: #9af0fb;
+  box-shadow: 0 0 16px rgba(70, 217, 236, 0.34);
 }
 
 .kf-btn-danger {
-  border-color: rgba(228, 93, 58, 0.6);
-  background: rgba(228, 93, 58, 0.14);
+  border-color: rgba(230, 93, 56, 0.65);
+  background: rgba(230, 93, 56, 0.16);
   color: #ffbeb0;
 }
 
 .kf-btn-danger:hover {
-  background: rgba(228, 93, 58, 0.28);
+  background: rgba(230, 93, 56, 0.3);
   border-color: var(--kf-vermilion);
 }
 
@@ -223,8 +284,8 @@ dialog::backdrop {
   width: 100%;
   padding: 9px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(217, 161, 74, 0.35);
-  background: rgba(6, 17, 18, 0.72);
+  border: 1px solid rgba(220, 162, 72, 0.42);
+  background: rgba(6, 17, 18, 0.78);
   color: var(--kf-ivory);
   font-family: var(--font-sans);
   font-size: 13.5px;
@@ -236,7 +297,7 @@ dialog::backdrop {
 .kf-textarea:focus,
 .kf-select:focus {
   border-color: var(--kf-cerulean);
-  box-shadow: 0 0 0 2px rgba(65, 211, 230, 0.22);
+  box-shadow: 0 0 0 2px rgba(70, 217, 236, 0.24);
 }
 
 .kf-textarea {
@@ -254,8 +315,8 @@ dialog::backdrop {
   align-items: center;
   padding: 1px 5px;
   border-radius: 4px;
-  border: 1px solid rgba(217, 161, 74, 0.34);
-  background: rgba(8, 22, 22, 0.55);
+  border: 1px solid rgba(220, 162, 72, 0.42);
+  background: rgba(8, 22, 22, 0.62);
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--kf-ochre);

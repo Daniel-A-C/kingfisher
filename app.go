@@ -428,6 +428,30 @@ func (a *App) UpdateAIConfig(cfg capture.Config) registry.Preferences {
 	return a.reg.Preferences
 }
 
+// UpdatePreferences persists full accessibility, appearance, scan directory, and AI settings.
+func (a *App) UpdatePreferences(prefs registry.Preferences) AppState {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if prefs.Opacity < 0 {
+		prefs.Opacity = 0
+	}
+	if prefs.Opacity > 0.85 {
+		prefs.Opacity = 0.85
+	}
+	cleanDirs := make([]string, 0, len(prefs.ScanDirs))
+	for _, d := range prefs.ScanDirs {
+		if s := strings.TrimSpace(d); s != "" {
+			cleanDirs = append(cleanDirs, s)
+		}
+	}
+	prefs.ScanDirs = cleanDirs
+	a.reg.Preferences = prefs
+	a.reg.ScanProjects()
+	_ = a.reg.Save()
+	return a.snapshotLocked()
+}
+
 // CreateTask adds a new task to the specified project board and saves atomically.
 func (a *App) CreateTask(projectPath, title, status, priority, description string, tags []string) (*board.Board, error) {
 	a.mu.Lock()
