@@ -154,6 +154,17 @@ func (b *Board) AddTask(title, status, priority, description string, tags []stri
 	return t
 }
 
+// AddTaskWithRaw appends a new task including the verbatim original human capture input.
+func (b *Board) AddTaskWithRaw(title, status, priority, description, rawInput string, tags []string) Task {
+	t := b.AddTask(title, status, priority, description, tags)
+	trimmedRaw := strings.TrimSpace(rawInput)
+	if trimmedRaw != "" {
+		b.Tasks[len(b.Tasks)-1].RawInput = trimmedRaw
+		t.RawInput = trimmedRaw
+	}
+	return t
+}
+
 // UpdateTask applies partial updates to the task matching id.
 func (b *Board) UpdateTask(id string, patch TaskPatch) (Task, error) {
 	for i := range b.Tasks {
@@ -187,6 +198,9 @@ func (b *Board) UpdateTask(id string, patch TaskPatch) (Task, error) {
 			}
 			if patch.Description != nil {
 				t.Description = strings.TrimSpace(*patch.Description)
+			}
+			if patch.RawInput != nil {
+				t.RawInput = strings.TrimSpace(*patch.RawInput)
 			}
 			if patch.AgentNotes != nil {
 				t.AgentNotes = strings.TrimSpace(*patch.AgentNotes)

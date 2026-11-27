@@ -467,7 +467,7 @@ func (a *App) CaptureContext(rawContext, activeProjectPath, defaultStatus string
 			}
 		}
 
-		task := b.AddTask(item.Title, item.Status, item.Priority, item.Description, item.Tags)
+		task := b.AddTaskWithRaw(item.Title, item.Status, item.Priority, item.Description, item.RawInput, item.Tags)
 		hash, err := board.SaveAtomic(target.Path, b)
 		if err != nil {
 			return CaptureBatchResponse{}, err
@@ -537,7 +537,7 @@ func (a *App) CaptureTask(projectPath, rawContext, defaultStatus string) (Captur
 	if !ok {
 		return CaptureResponse{}, fmt.Errorf("project not loaded: %s", projectPath)
 	}
-	task := b.AddTask(res.Title, res.Status, res.Priority, res.Description, res.Tags)
+	task := b.AddTaskWithRaw(res.Title, res.Status, res.Priority, res.Description, res.RawInput, res.Tags)
 	if err := a.saveBoardLocked(projectPath, b); err != nil {
 		return CaptureResponse{}, err
 	}

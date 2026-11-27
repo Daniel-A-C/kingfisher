@@ -20,6 +20,7 @@ export interface Task {
   created: string;
   updated: string;
   description: string;
+  raw_input?: string;
   agent_notes: string;
 }
 
@@ -36,6 +37,7 @@ export interface TaskPatch {
   tags?: string[];
   has_tags?: boolean;
   description?: string;
+  raw_input?: string;
   agent_notes?: string;
 }
 

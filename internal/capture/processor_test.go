@@ -108,6 +108,12 @@ func TestBatchMultiProjectCapture(t *testing.T) {
 	if res.Items[0].ProjectSlug != "rookery" || res.Items[1].ProjectSlug != "kingfisher" {
 		t.Fatalf("unexpected project routing: %+v", res.Items)
 	}
+	if res.Items[0].RawInput != "Rookery: fix wallpaper wake bug" {
+		t.Fatalf("expected chunk-matched RawInput for item 0, got %q", res.Items[0].RawInput)
+	}
+	if res.Items[1].RawInput != "Kingfisher: add j/k card nav" {
+		t.Fatalf("expected chunk-matched RawInput for item 1, got %q", res.Items[1].RawInput)
+	}
 
 	// Verify heuristic multi-item + project-routing fallback too
 	fallback := HeuristicParseBatch("- Rookery: fix wallpaper fade\n- Corvidae: add spaced repetition", []ProjectContext{
@@ -120,5 +126,8 @@ func TestBatchMultiProjectCapture(t *testing.T) {
 	}
 	if fallback.Items[0].ProjectSlug != "rookery" || fallback.Items[1].ProjectSlug != "corvidae" {
 		t.Fatalf("unexpected heuristic routing: %+v", fallback.Items)
+	}
+	if fallback.Items[0].RawInput != "Rookery: fix wallpaper fade" {
+		t.Fatalf("expected verbatim RawInput in heuristic item 0, got %q", fallback.Items[0].RawInput)
 	}
 }

@@ -19,6 +19,7 @@
   let priority = $state<Priority>('medium');
   let tagsRaw = $state('');
   let description = $state('');
+  let rawInput = $state('');
   let agentNotes = $state('');
   let confirmDelete = $state(false);
 
@@ -37,6 +38,7 @@
       priority = task.priority;
       tagsRaw = (task.tags ?? []).join(', ');
       description = task.description ?? '';
+      rawInput = task.raw_input ?? '';
       agentNotes = task.agent_notes ?? '';
       confirmDelete = false;
       if (!dialogEl.open) {
@@ -68,6 +70,7 @@
       tags,
       has_tags: true,
       description,
+      raw_input: rawInput,
       agent_notes: agentNotes,
     });
     dialogEl?.close();
@@ -142,10 +145,21 @@
           <textarea
             bind:value={agentNotes}
             class="kf-textarea agent-textarea"
-            rows="5"
+            rows="4"
             placeholder="Agents append completion summaries, changed files, or blockers here..."
           ></textarea>
         </label>
+
+        {#if rawInput || task.raw_input}
+          <label class="field raw-input-field">
+            <span class="field-label">📜 Original Human Input (verbatim capture)</span>
+            <textarea
+              bind:value={rawInput}
+              class="kf-textarea raw-textarea"
+              rows="4"
+            ></textarea>
+          </label>
+        {/if}
 
         <div class="meta-timestamps">
           <span>Created: {task.created || '—'}</span>
@@ -228,6 +242,15 @@
     font-size: 12px;
     border-color: rgba(65, 211, 230, 0.4);
     background: rgba(8, 28, 30, 0.78);
+  }
+
+  .raw-textarea {
+    font-size: 12.5px;
+    line-height: 1.55;
+    border-color: rgba(220, 162, 72, 0.48);
+    border-left: 3px solid var(--kf-gold);
+    background: rgba(24, 22, 14, 0.62);
+    color: var(--kf-ivory-soft);
   }
 
   .meta-timestamps {

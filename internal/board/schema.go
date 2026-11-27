@@ -43,6 +43,7 @@ type Task struct {
 	Created     string   `yaml:"created"               json:"created"`
 	Updated     string   `yaml:"updated"               json:"updated"`
 	Description string   `yaml:"description,omitempty" json:"description"`
+	RawInput    string   `yaml:"raw_input,omitempty"   json:"raw_input,omitempty"`
 	AgentNotes  string   `yaml:"agent_notes"           json:"agent_notes"`
 }
 
@@ -54,6 +55,7 @@ type TaskPatch struct {
 	Tags        []string `json:"tags,omitempty"`
 	HasTags     bool     `json:"has_tags,omitempty"`
 	Description *string  `json:"description,omitempty"`
+	RawInput    *string  `json:"raw_input,omitempty"`
 	AgentNotes  *string  `json:"agent_notes,omitempty"`
 }
 

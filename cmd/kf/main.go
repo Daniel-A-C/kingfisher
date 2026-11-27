@@ -198,6 +198,9 @@ func cmdNext(args []string, stdout, stderr io.Writer) int {
 	if task.Description != "" {
 		fmt.Fprintf(stdout, "\n%s\n", task.Description)
 	}
+	if task.RawInput != "" {
+		fmt.Fprintf(stdout, "\nOriginal Human Input:\n%s\n", task.RawInput)
+	}
 	if task.AgentNotes != "" {
 		fmt.Fprintf(stdout, "\nAgent Notes:\n%s\n", task.AgentNotes)
 	}
@@ -364,7 +367,7 @@ func cmdCapture(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "error loading %s: %v\n", target.Name, err)
 			return 1
 		}
-		task := b.AddTask(item.Title, item.Status, item.Priority, item.Description, item.Tags)
+		task := b.AddTaskWithRaw(item.Title, item.Status, item.Priority, item.Description, item.RawInput, item.Tags)
 		if _, err := board.SaveAtomic(target.Path, b); err != nil {
 			fmt.Fprintf(stderr, "error saving %s: %v\n", target.Name, err)
 			return 1

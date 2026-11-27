@@ -42,6 +42,7 @@ type Result struct {
 	Priority    string   `json:"priority"`
 	Tags        []string `json:"tags"`
 	Description string   `json:"description"`
+	RawInput    string   `json:"raw_input,omitempty"`
 	UsedAI      bool     `json:"used_ai"`
 	Model       string   `json:"model,omitempty"`
 }
@@ -437,6 +438,7 @@ func parseModelJSON(raw, fallbackContext string, b *board.Board, defaultStatus, 
 		Priority:    board.NormalizePriority(parsed.Priority),
 		Tags:        cleanTags(parsed.Tags),
 		Description: desc,
+		RawInput:    strings.TrimSpace(fallbackContext),
 		UsedAI:      true,
 		Model:       modelName,
 	}, nil
@@ -518,6 +520,7 @@ func HeuristicParse(rawContext string, b *board.Board, defaultStatus string) Res
 		Priority:    priority,
 		Tags:        cleanTags(tags),
 		Description: desc,
+		RawInput:    raw,
 		UsedAI:      false,
 	}
 }
@@ -643,7 +646,8 @@ Available projects:
 Rules:
 1. Route EACH task to the matching project's "slug" based on the user's text. If a task does not mention a specific project, assign it to the default project "%s".
 2. If the user describes MULTIPLE distinct tasks, bugs, or ideas (for the same project or different projects), split them into separate objects in the "items" array. If it is one task with supporting details, return 1 object in "items".
-3. Return ONLY valid JSON with this exact shape:
+3. For each item, also include "raw_excerpt": the exact verbatim portion of the user's original message that corresponds to that ticket (copy it word-for-word without rewriting or omitting details).
+4. Return ONLY valid JSON with this exact shape:
 {
   "items": [
     {
@@ -652,7 +656,8 @@ Rules:
       "status": "<valid column id for that project; default %s>",
       "priority": "low | medium | high | critical",
       "tags": ["tag1", "tag2"],
-      "description": "<cleanly formatted concise markdown preserving all user details>"
+      "description": "<cleanly formatted concise summary capturing the key intent>",
+      "raw_excerpt": "<verbatim portion of the user's original message for this ticket>"
     }
   ]
 }`, strings.Join(projLines, "\n"), defaultProjectSlug, defaultStatus)
@@ -703,6 +708,7 @@ type rawModelItem struct {
 	Priority    string   `json:"priority"`
 	Tags        []string `json:"tags"`
 	Description string   `json:"description"`
+	RawExcerpt  string   `json:"raw_excerpt"`
 }
 
 func parseBatchModelJSON(raw, fallbackContext string, projects []ProjectContext, defaultProjectSlug, defaultStatus, modelName string) (BatchResult, error) {
@@ -751,6 +757,8 @@ func parseBatchModelJSON(raw, fallbackContext string, projects []ProjectContext,
 		return BatchResult{}, fmt.Errorf("model returned no valid items")
 	}
 
+	trimmedOriginal := strings.TrimSpace(fallbackContext)
+	chunks := splitMultiItemChunks(trimmedOriginal)
 	results := make([]Result, 0, len(rawItems))
 	for _, it := range rawItems {
 		title := strings.TrimSpace(it.Title)
@@ -761,8 +769,21 @@ func parseBatchModelJSON(raw, fallbackContext string, projects []ProjectContext,
 		status := resolveColumnStatus(it.Status, proj.Columns, defaultStatus)
 		desc := strings.TrimSpace(it.Description)
 		if desc == "" && len(rawItems) == 1 {
-			desc = strings.TrimSpace(fallbackContext)
+			desc = trimmedOriginal
 		}
+
+		// Preserve verbatim original human input:
+		// - Single ticket: always keep the full original message verbatim (no LLM paraphrase loss).
+		// - Multi-ticket: use the model's verbatim raw_excerpt if present, else best-matching chunk, else full original.
+		rawInput := trimmedOriginal
+		if len(rawItems) > 1 {
+			if ex := strings.TrimSpace(it.RawExcerpt); ex != "" {
+				rawInput = ex
+			} else if matched := bestMatchingChunk(chunks, title, proj.Name, desc); matched != "" {
+				rawInput = matched
+			}
+		}
+
 		results = append(results, Result{
 			ProjectSlug: proj.Slug,
 			Title:       title,
@@ -770,6 +791,7 @@ func parseBatchModelJSON(raw, fallbackContext string, projects []ProjectContext,
 			Priority:    board.NormalizePriority(it.Priority),
 			Tags:        cleanTags(it.Tags),
 			Description: desc,
+			RawInput:    rawInput,
 			UsedAI:      true,
 			Model:       modelName,
 		})
@@ -884,7 +906,69 @@ func splitMultiItemChunks(raw string) []string {
 		}
 	}
 
+	// Fallback: split on blank-line paragraphs if 2+ distinct paragraphs exist
+	if paras := strings.Split(raw, "\n\n"); len(paras) >= 2 {
+		var out []string
+		for _, p := range paras {
+			if s := strings.TrimSpace(p); s != "" {
+				out = append(out, s)
+			}
+		}
+		if len(out) >= 2 {
+			return out
+		}
+	}
+
 	return []string{raw}
+}
+
+func bestMatchingChunk(chunks []string, title, projectName, desc string) string {
+	if len(chunks) <= 1 {
+		if len(chunks) == 1 {
+			return chunks[0]
+		}
+		return ""
+	}
+	queryTokens := tokenizeWords(title + " " + projectName + " " + desc)
+	bestIdx := -1
+	bestScore := 0
+	for i, ch := range chunks {
+		chLower := strings.ToLower(ch)
+		score := 0
+		for tok := range queryTokens {
+			if strings.Contains(chLower, tok) {
+				score++
+			}
+		}
+		if score > bestScore {
+			bestScore = score
+			bestIdx = i
+		}
+	}
+	if bestIdx >= 0 && bestScore > 0 {
+		return chunks[bestIdx]
+	}
+	return ""
+}
+
+func tokenizeWords(s string) map[string]bool {
+	out := map[string]bool{}
+	var cur []rune
+	flush := func() {
+		if len(cur) >= 3 {
+			out[strings.ToLower(string(cur))] = true
+		}
+		cur = nil
+	}
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			cur = append(cur, r)
+		} else {
+			flush()
+		}
+	}
+	flush()
+	return out
 }
 
 func matchProjectInText(text string, projects []ProjectContext, defaultSlug string) ProjectContext {
