@@ -34,8 +34,9 @@ type Status struct {
 	Message   string   `json:"message"`
 }
 
-// Result is the structured task extracted from raw user context.
+// Result is a single structured task extracted from raw user context.
 type Result struct {
+	ProjectSlug string   `json:"project,omitempty"`
 	Title       string   `json:"title"`
 	Status      string   `json:"status"`
 	Priority    string   `json:"priority"`
@@ -43,6 +44,23 @@ type Result struct {
 	Description string   `json:"description"`
 	UsedAI      bool     `json:"used_ai"`
 	Model       string   `json:"model,omitempty"`
+}
+
+// ProjectContext describes a known Kingfisher project for project-agnostic routing.
+type ProjectContext struct {
+	Slug    string
+	Name    string
+	Prefix  string
+	Path    string
+	Columns []board.Column
+	Tags    []string
+}
+
+// BatchResult holds one or more structured tickets routed to their respective projects.
+type BatchResult struct {
+	Items  []Result `json:"items"`
+	UsedAI bool     `json:"used_ai"`
+	Model  string   `json:"model,omitempty"`
 }
 
 // DefaultConfig returns sensible defaults for a very small, fast local Ollama model.
@@ -569,6 +587,335 @@ func containsAny(haystack string, needles ...string) bool {
 		if strings.Contains(haystack, n) {
 			return true
 		}
+	}
+	return false
+}
+
+// ProcessBatch processes freeform context across all known projects, automatically routing each
+// item to the right project and splitting multiple distinct ideas into separate tickets.
+func ProcessBatch(ctx context.Context, cfg Config, rawContext string, projects []ProjectContext, defaultProjectSlug, defaultStatus string) BatchResult {
+	rawContext = strings.TrimSpace(rawContext)
+	cfg = cfg.normalized()
+
+	if len(projects) == 0 {
+		single := Process(ctx, cfg, rawContext, nil, defaultStatus)
+		return BatchResult{Items: []Result{single}, UsedAI: single.UsedAI, Model: single.Model}
+	}
+
+	if defaultProjectSlug == "" {
+		defaultProjectSlug = projects[0].Slug
+	}
+	if defaultStatus == "" {
+		defaultStatus = "ready"
+	}
+
+	if cfg.Enabled && rawContext != "" {
+		if res, err := callLocalLLMBatch(ctx, cfg, rawContext, projects, defaultProjectSlug, defaultStatus); err == nil && len(res.Items) > 0 {
+			return res
+		}
+	}
+
+	return HeuristicParseBatch(rawContext, projects, defaultProjectSlug, defaultStatus)
+}
+
+func buildBatchPrompt(rawContext string, projects []ProjectContext, defaultProjectSlug, defaultStatus string) (string, string) {
+	var projLines []string
+	for _, p := range projects {
+		var colIDs []string
+		for _, c := range p.Columns {
+			colIDs = append(colIDs, c.ID)
+		}
+		if len(colIDs) == 0 {
+			colIDs = []string{"backlog", "ready", "active", "done"}
+		}
+		line := fmt.Sprintf(`- slug: "%s" | name: "%s" | prefix: "%s" | columns: [%s]`,
+			p.Slug, p.Name, p.Prefix, strings.Join(colIDs, ", "))
+		if len(p.Tags) > 0 {
+			line += fmt.Sprintf(" | existing_tags: [%s]", strings.Join(p.Tags, ", "))
+		}
+		projLines = append(projLines, line)
+	}
+
+	sys := fmt.Sprintf(`You are a fast, precise project-routing and task-triage assistant for Kingfisher.
+Available projects:
+%s
+
+Rules:
+1. Route EACH task to the matching project's "slug" based on the user's text. If a task does not mention a specific project, assign it to the default project "%s".
+2. If the user describes MULTIPLE distinct tasks, bugs, or ideas (for the same project or different projects), split them into separate objects in the "items" array. If it is one task with supporting details, return 1 object in "items".
+3. Return ONLY valid JSON with this exact shape:
+{
+  "items": [
+    {
+      "project": "<project slug>",
+      "title": "<concise imperative title, <= 70 chars>",
+      "status": "<valid column id for that project; default %s>",
+      "priority": "low | medium | high | critical",
+      "tags": ["tag1", "tag2"],
+      "description": "<cleanly formatted concise markdown preserving all user details>"
+    }
+  ]
+}`, strings.Join(projLines, "\n"), defaultProjectSlug, defaultStatus)
+
+	return sys, rawContext
+}
+
+func callLocalLLMBatch(ctx context.Context, cfg Config, rawContext string, projects []ProjectContext, defaultProjectSlug, defaultStatus string) (BatchResult, error) {
+	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
+	if timeout < 15*time.Second {
+		timeout = 15 * time.Second
+	}
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	modelName := cfg.Model
+	if strings.EqualFold(cfg.Provider, "ollama") {
+		st := CheckStatus(reqCtx, cfg)
+		if !st.Available {
+			return BatchResult{}, fmt.Errorf("ollama unavailable: %s", st.Message)
+		}
+		if st.Model != "" {
+			modelName = st.Model
+		}
+	}
+
+	sysPrompt, userPrompt := buildBatchPrompt(rawContext, projects, defaultProjectSlug, defaultStatus)
+	client := &http.Client{Timeout: timeout}
+
+	var content string
+	var err error
+	if strings.EqualFold(cfg.Provider, "openai") {
+		content, err = callOpenAICompat(reqCtx, client, cfg.Endpoint, modelName, sysPrompt, userPrompt)
+	} else {
+		content, err = callOllama(reqCtx, client, cfg.Endpoint, modelName, sysPrompt, userPrompt)
+	}
+	if err != nil {
+		return BatchResult{}, err
+	}
+
+	return parseBatchModelJSON(content, rawContext, projects, defaultProjectSlug, defaultStatus, modelName)
+}
+
+type rawModelItem struct {
+	Project     string   `json:"project"`
+	Title       string   `json:"title"`
+	Status      string   `json:"status"`
+	Priority    string   `json:"priority"`
+	Tags        []string `json:"tags"`
+	Description string   `json:"description"`
+}
+
+func parseBatchModelJSON(raw, fallbackContext string, projects []ProjectContext, defaultProjectSlug, defaultStatus, modelName string) (BatchResult, error) {
+	cleaned := strings.TrimSpace(raw)
+	cleaned = strings.TrimPrefix(cleaned, "```json")
+	cleaned = strings.TrimPrefix(cleaned, "```")
+	cleaned = strings.TrimSuffix(cleaned, "```")
+	cleaned = strings.TrimSpace(cleaned)
+
+	var rawItems []rawModelItem
+
+	// Shape 1: {"items": [...]}
+	var wrapper struct {
+		Items []rawModelItem `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(cleaned), &wrapper); err == nil && len(wrapper.Items) > 0 {
+		rawItems = wrapper.Items
+	}
+
+	// Shape 2: bare JSON array [...]
+	if len(rawItems) == 0 {
+		var arr []rawModelItem
+		if err := json.Unmarshal([]byte(cleaned), &arr); err == nil && len(arr) > 0 {
+			rawItems = arr
+		}
+	}
+
+	// Shape 3: single JSON object {...}
+	if len(rawItems) == 0 {
+		if start := strings.Index(cleaned, "{"); start >= 0 {
+			if end := strings.LastIndex(cleaned, "}"); end > start {
+				sub := cleaned[start : end+1]
+				if err := json.Unmarshal([]byte(sub), &wrapper); err == nil && len(wrapper.Items) > 0 {
+					rawItems = wrapper.Items
+				} else {
+					var single rawModelItem
+					if err := json.Unmarshal([]byte(sub), &single); err == nil && strings.TrimSpace(single.Title) != "" {
+						rawItems = []rawModelItem{single}
+					}
+				}
+			}
+		}
+	}
+
+	if len(rawItems) == 0 {
+		return BatchResult{}, fmt.Errorf("model returned no valid items")
+	}
+
+	results := make([]Result, 0, len(rawItems))
+	for _, it := range rawItems {
+		title := strings.TrimSpace(it.Title)
+		if title == "" {
+			continue
+		}
+		proj := resolveProject(it.Project, projects, defaultProjectSlug)
+		status := resolveColumnStatus(it.Status, proj.Columns, defaultStatus)
+		desc := strings.TrimSpace(it.Description)
+		if desc == "" && len(rawItems) == 1 {
+			desc = strings.TrimSpace(fallbackContext)
+		}
+		results = append(results, Result{
+			ProjectSlug: proj.Slug,
+			Title:       title,
+			Status:      status,
+			Priority:    board.NormalizePriority(it.Priority),
+			Tags:        cleanTags(it.Tags),
+			Description: desc,
+			UsedAI:      true,
+			Model:       modelName,
+		})
+	}
+
+	if len(results) == 0 {
+		return BatchResult{}, fmt.Errorf("no valid tasks after normalization")
+	}
+	return BatchResult{Items: results, UsedAI: true, Model: modelName}, nil
+}
+
+func resolveProject(hint string, projects []ProjectContext, defaultSlug string) ProjectContext {
+	q := strings.ToLower(strings.TrimSpace(hint))
+	if q != "" {
+		for _, p := range projects {
+			if strings.EqualFold(p.Slug, q) || strings.EqualFold(p.Name, q) || strings.EqualFold(p.Prefix, q) {
+				return p
+			}
+		}
+		// Partial substring match on name/slug
+		for _, p := range projects {
+			if strings.Contains(strings.ToLower(p.Name), q) || strings.Contains(strings.ToLower(p.Slug), q) {
+				return p
+			}
+		}
+	}
+	for _, p := range projects {
+		if strings.EqualFold(p.Slug, defaultSlug) {
+			return p
+		}
+	}
+	return projects[0]
+}
+
+func resolveColumnStatus(status string, cols []board.Column, defaultStatus string) string {
+	s := strings.ToLower(strings.TrimSpace(status))
+	for _, c := range cols {
+		if strings.EqualFold(c.ID, s) || strings.EqualFold(c.Name, s) {
+			return c.ID
+		}
+	}
+	for _, c := range cols {
+		if strings.EqualFold(c.ID, defaultStatus) {
+			return c.ID
+		}
+	}
+	if len(cols) > 0 {
+		return cols[0].ID
+	}
+	return "ready"
+}
+
+var listItemPrefixRe = regexp.MustCompile(`^\s*(?:[-*•]|\d+[.)])\s+`)
+
+// HeuristicParseBatch splits multi-item lists/paragraphs and routes each item to a matching project
+// when no local LLM is available.
+func HeuristicParseBatch(rawContext string, projects []ProjectContext, defaultProjectSlug, defaultStatus string) BatchResult {
+	chunks := splitMultiItemChunks(rawContext)
+	items := make([]Result, 0, len(chunks))
+
+	for _, chunk := range chunks {
+		proj := matchProjectInText(chunk, projects, defaultProjectSlug)
+		b := &board.Board{Columns: proj.Columns}
+		if len(b.Columns) == 0 {
+			b.Columns = board.DefaultColumns()
+		}
+		res := HeuristicParse(chunk, b, defaultStatus)
+		res.ProjectSlug = proj.Slug
+		items = append(items, res)
+	}
+
+	return BatchResult{Items: items, UsedAI: false}
+}
+
+func splitMultiItemChunks(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+
+	lines := strings.Split(raw, "\n")
+	listLineCount := 0
+	for _, l := range lines {
+		if listItemPrefixRe.MatchString(l) {
+			listLineCount++
+		}
+	}
+
+	// If 2+ bullet/numbered lines exist, split per list item
+	if listLineCount >= 2 {
+		var chunks []string
+		var cur []string
+		for _, l := range lines {
+			trimmed := strings.TrimSpace(l)
+			if trimmed == "" {
+				continue
+			}
+			if listItemPrefixRe.MatchString(l) {
+				if len(cur) > 0 {
+					chunks = append(chunks, strings.Join(cur, "\n"))
+				}
+				cur = []string{strings.TrimSpace(listItemPrefixRe.ReplaceAllString(l, ""))}
+			} else {
+				cur = append(cur, trimmed)
+			}
+		}
+		if len(cur) > 0 {
+			chunks = append(chunks, strings.Join(cur, "\n"))
+		}
+		if len(chunks) > 0 {
+			return chunks
+		}
+	}
+
+	return []string{raw}
+}
+
+func matchProjectInText(text string, projects []ProjectContext, defaultSlug string) ProjectContext {
+	lower := strings.ToLower(text)
+	for _, p := range projects {
+		name := strings.ToLower(strings.TrimSpace(p.Name))
+		slug := strings.ToLower(strings.TrimSpace(p.Slug))
+		if len(name) >= 3 && containsWord(lower, name) {
+			return p
+		}
+		if len(slug) >= 3 && slug != name && containsWord(lower, slug) {
+			return p
+		}
+	}
+	return resolveProject("", projects, defaultSlug)
+}
+
+func containsWord(haystack, word string) bool {
+	idx := strings.Index(haystack, word)
+	for idx >= 0 {
+		beforeOK := idx == 0 || !unicode.IsLetter(rune(haystack[idx-1]))
+		afterIdx := idx + len(word)
+		afterOK := afterIdx >= len(haystack) || !unicode.IsLetter(rune(haystack[afterIdx]))
+		if beforeOK && afterOK {
+			return true
+		}
+		next := strings.Index(haystack[idx+1:], word)
+		if next < 0 {
+			break
+		}
+		idx = idx + 1 + next
 	}
 	return false
 }

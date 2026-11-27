@@ -75,3 +75,50 @@ func TestOllamaStructuredCapture(t *testing.T) {
 		t.Fatalf("unexpected structured result: %+v", res)
 	}
 }
+
+func TestBatchMultiProjectCapture(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/tags":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"models": []map[string]string{{"name": "qwen2.5:1.5b"}},
+			})
+		case "/api/chat":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message": map[string]string{
+					"content": `{"items":[{"project":"rookery","title":"Fix wallpaper transition on wake","status":"ready","priority":"high","tags":["mac","wallpaper"],"description":"Ensure wallpaper fades smoothly after sleep."},{"project":"kingfisher","title":"Add keyboard navigation to cards","status":"backlog","priority":"medium","tags":["ux"],"description":"Support j/k/h/l navigation across Kanban columns."}]}`,
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	projects := []ProjectContext{
+		{Slug: "kingfisher", Name: "Kingfisher", Prefix: "KNG", Columns: board.DefaultColumns()},
+		{Slug: "rookery", Name: "Rookery", Prefix: "RKR", Columns: board.DefaultColumns()},
+	}
+	cfg := Config{Enabled: true, Provider: "ollama", Endpoint: srv.URL, Model: "qwen2.5:1.5b", TimeoutSeconds: 5}
+
+	res := ProcessBatch(context.Background(), cfg, "1. Rookery: fix wallpaper wake bug\n2. Kingfisher: add j/k card nav", projects, "kingfisher", "ready")
+	if !res.UsedAI || len(res.Items) != 2 {
+		t.Fatalf("expected 2 AI items, got %+v", res)
+	}
+	if res.Items[0].ProjectSlug != "rookery" || res.Items[1].ProjectSlug != "kingfisher" {
+		t.Fatalf("unexpected project routing: %+v", res.Items)
+	}
+
+	// Verify heuristic multi-item + project-routing fallback too
+	fallback := HeuristicParseBatch("- Rookery: fix wallpaper fade\n- Corvidae: add spaced repetition", []ProjectContext{
+		{Slug: "kingfisher", Name: "Kingfisher", Prefix: "KNG", Columns: board.DefaultColumns()},
+		{Slug: "rookery", Name: "Rookery", Prefix: "RKR", Columns: board.DefaultColumns()},
+		{Slug: "corvidae", Name: "Corvidae", Prefix: "CRV", Columns: board.DefaultColumns()},
+	}, "kingfisher", "ready")
+	if len(fallback.Items) != 2 {
+		t.Fatalf("expected 2 heuristic items, got %+v", fallback)
+	}
+	if fallback.Items[0].ProjectSlug != "rookery" || fallback.Items[1].ProjectSlug != "corvidae" {
+		t.Fatalf("unexpected heuristic routing: %+v", fallback.Items)
+	}
+}

@@ -5,6 +5,7 @@ import type {
   Board,
   BoardErrorEvent,
   BoardUpdateEvent,
+  CaptureBatchResponse,
   CaptureResponse,
   Preferences,
   TaskPatch,
@@ -28,6 +29,11 @@ declare global {
             prefix: string,
             useGitignore: boolean
           ): Promise<AppState>;
+          CaptureContext(
+            rawContext: string,
+            activeProjectPath: string,
+            defaultStatus: string
+          ): Promise<CaptureBatchResponse>;
           CaptureTask(
             projectPath: string,
             rawContext: string,
@@ -88,6 +94,8 @@ export const api = {
   pickFolder: () => backend().PickFolder(),
   initProject: (dir: string, name: string, prefix: string, useGitignore: boolean) =>
     backend().InitProject(dir, name, prefix, useGitignore),
+  captureContext: (rawContext: string, activeProjectPath: string, defaultStatus: string) =>
+    backend().CaptureContext(rawContext, activeProjectPath, defaultStatus),
   captureTask: (projectPath: string, rawContext: string, defaultStatus: string) =>
     backend().CaptureTask(projectPath, rawContext, defaultStatus),
   getAIStatus: () => backend().GetAIStatus(),

@@ -8,6 +8,7 @@
     open: boolean;
     defaultStatus: string;
     projectName: string;
+    projectCount: number;
     aiConfig: AIConfig;
     onClose: () => void;
     onCapture: (rawContext: string, defaultStatus: string) => Promise<void>;
@@ -18,6 +19,7 @@
     open,
     defaultStatus,
     projectName,
+    projectCount,
     aiConfig,
     onClose,
     onCapture,
@@ -115,7 +117,9 @@
   <form class="capture-form" onsubmit={handleFormSubmit}>
     <header class="modal-header">
       <div>
-        <span class="modal-eyebrow">✦ {projectName}</span>
+        <span class="modal-eyebrow">
+          ✦ Auto-Routing · {projectCount} project{projectCount === 1 ? '' : 's'}{projectName ? ` (default: ${projectName})` : ''}
+        </span>
         <h1 id="capture-title" class="modal-title">Capture Context</h1>
       </div>
       <div class="header-right">
@@ -146,7 +150,7 @@
         class="kf-textarea context-box"
         rows="5"
         disabled={processing}
-        placeholder="Dump your raw idea, bug, or context here…&#10;&#10;The local model will automatically generate a clean title, column, priority, tags, and formatted description."
+        placeholder="Dump one or more ideas for any project…&#10;&#10;Mention project names to auto-route (e.g. 'For Rookery: fix wallpaper wake fade. Also in Kingfisher: add card keyboard nav.'). Distinct items are automatically split into separate tickets."
         onkeydown={handleKeyDown}
       ></textarea>
 

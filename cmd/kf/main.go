@@ -301,39 +301,77 @@ func cmdAdd(args []string, stdout, stderr io.Writer) int {
 func cmdCapture(args []string, stdout, stderr io.Writer) int {
 	raw := strings.TrimSpace(strings.Join(args, " "))
 	if raw == "" {
-		fmt.Fprintln(stderr, "error: capture context is required (e.g. kf capture \"urgent: fix drag glitch\")")
+		fmt.Fprintln(stderr, "error: capture context is required (e.g. kf capture \"Rookery: fix wallpaper fade\")")
 		return 2
 	}
 
-	dir, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintf(stderr, "error: %v\n", err)
-		return 1
-	}
-
-	b, _, err := board.Load(dir)
-	if err != nil {
-		fmt.Fprintf(stderr, "error: %v\n", err)
-		return 1
-	}
-
+	dir, _ := os.Getwd()
 	aiCfg := capture.DefaultConfig()
+	var projects []capture.ProjectContext
+	defaultSlug := ""
+
 	if reg, err := loadRegistry(); err == nil {
 		aiCfg = reg.Preferences.AI
+		for _, p := range reg.Projects {
+			if !board.Exists(p.Path) {
+				continue
+			}
+			pc := capture.ProjectContext{Slug: p.Slug, Name: p.Name, Prefix: p.Prefix, Path: p.Path}
+			if b, _, err := board.Load(p.Path); err == nil {
+				pc.Columns = b.Columns
+			}
+			projects = append(projects, pc)
+			if p.Path == dir {
+				defaultSlug = p.Slug
+			}
+		}
 	}
 
-	res := capture.Process(context.Background(), aiCfg, raw, b, "ready")
-	task := b.AddTask(res.Title, res.Status, res.Priority, res.Description, res.Tags)
-	if _, err := board.SaveAtomic(dir, b); err != nil {
-		fmt.Fprintf(stderr, "error: %v\n", err)
+	// Ensure current directory is included if initialized but not yet registered
+	if dir != "" && board.Exists(dir) && defaultSlug == "" {
+		if b, _, err := board.Load(dir); err == nil {
+			slug := registry.Slugify(b.Project.Name)
+			projects = append(projects, capture.ProjectContext{
+				Slug: slug, Name: b.Project.Name, Prefix: b.Project.Prefix, Path: dir, Columns: b.Columns,
+			})
+			defaultSlug = slug
+		}
+	}
+
+	if len(projects) == 0 {
+		fmt.Fprintln(stderr, "error: no Kingfisher projects found (run `kf init` first)")
 		return 1
+	}
+
+	batch := capture.ProcessBatch(context.Background(), aiCfg, raw, projects, defaultSlug, "ready")
+	bySlug := make(map[string]capture.ProjectContext, len(projects))
+	for _, p := range projects {
+		bySlug[p.Slug] = p
 	}
 
 	mode := "heuristic fallback"
-	if res.UsedAI {
-		mode = res.Model
+	if batch.UsedAI {
+		mode = batch.Model
 	}
-	fmt.Fprintf(stdout, "Captured %s [%s | %s] %s (%s)\n", task.ID, task.Status, task.Priority, task.Title, mode)
+
+	for _, item := range batch.Items {
+		target, ok := bySlug[item.ProjectSlug]
+		if !ok {
+			target = projects[0]
+		}
+		b, _, err := board.Load(target.Path)
+		if err != nil {
+			fmt.Fprintf(stderr, "error loading %s: %v\n", target.Name, err)
+			return 1
+		}
+		task := b.AddTask(item.Title, item.Status, item.Priority, item.Description, item.Tags)
+		if _, err := board.SaveAtomic(target.Path, b); err != nil {
+			fmt.Fprintf(stderr, "error saving %s: %v\n", target.Name, err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "Captured %s (%s) [%s | %s] %s (%s)\n",
+			task.ID, target.Name, task.Status, task.Priority, task.Title, mode)
+	}
 	return 0
 }
 

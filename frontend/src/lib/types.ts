@@ -72,6 +72,20 @@ export interface CaptureResponse {
   model?: string;
 }
 
+export interface CapturedTicket {
+  project_path: string;
+  project_name: string;
+  project_slug: string;
+  task: Task;
+}
+
+export interface CaptureBatchResponse {
+  state: AppState;
+  tickets: CapturedTicket[];
+  used_ai: boolean;
+  model?: string;
+}
+
 export interface Preferences {
   opacity: number;
   high_contrast: boolean;

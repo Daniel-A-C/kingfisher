@@ -158,17 +158,15 @@
       ⚙
     </button>
 
-    {#if activeTab}
-      <button
-        type="button"
-        class="kf-btn kf-btn-primary capture-btn"
-        onclick={onQuickCapture}
-        title="Capture Context (⌘N)"
-      >
-        <span>✦ Capture</span>
-        <span class="kf-kbd">⌘N</span>
-      </button>
-    {/if}
+    <button
+      type="button"
+      class="kf-btn kf-btn-primary capture-btn"
+      onclick={onQuickCapture}
+      title="Project-Agnostic Capture (⌘N)"
+    >
+      <span>✦ Capture</span>
+      <span class="kf-kbd">⌘N</span>
+    </button>
   </div>
 </header>
 

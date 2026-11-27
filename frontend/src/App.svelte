@@ -139,10 +139,10 @@
         return;
       }
 
-      // Cmd + N -> Quick Capture
+      // Cmd + N -> Project-Agnostic Capture
       if (meta && !e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
-        if (activeBoard) {
+        if (appState.projects.length > 0) {
           captureColumn = 'ready';
           captureOpen = true;
         } else {
@@ -171,7 +171,7 @@
         !captureOpen &&
         !selectedTaskID
       ) {
-        if (e.key === 'n' && activeBoard) {
+        if (e.key === 'n' && appState.projects.length > 0) {
           e.preventDefault();
           captureColumn = 'ready';
           captureOpen = true;
@@ -252,15 +252,17 @@
   }
 
   async function handleCaptureTask(rawContext: string, defaultStatus: string) {
-    if (!appState.active_tab) return;
     try {
-      const res = await api.captureTask(appState.active_tab, rawContext, defaultStatus);
-      appState = {
-        ...appState,
-        boards: { ...appState.boards, [appState.active_tab]: res.board },
-      };
+      const res = await api.captureContext(rawContext, appState.active_tab, defaultStatus);
+      appState = res.state;
       const engine = res.used_ai ? res.model || 'local AI' : 'heuristic fallback';
-      showToast(`✦ ${res.task.id} filed → ${res.task.status} (${engine})`);
+      if (res.tickets.length === 1) {
+        const t = res.tickets[0];
+        showToast(`✦ ${t.task.id} → ${t.project_name} / ${t.task.status} (${engine})`);
+      } else {
+        const summary = res.tickets.map((t) => `${t.task.id} (${t.project_name})`).join(', ');
+        showToast(`✦ Filed ${res.tickets.length} tickets: ${summary}`);
+      }
     } catch (err) {
       showToast(`Capture failed: ${err}`);
     }
@@ -433,6 +435,7 @@
     open={captureOpen}
     defaultStatus={captureColumn}
     projectName={activeBoard?.project.name ?? ''}
+    projectCount={appState.projects.length}
     aiConfig={appState.preferences.ai}
     onClose={() => (captureOpen = false)}
     onCapture={handleCaptureTask}

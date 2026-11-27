@@ -358,6 +358,148 @@ type CaptureResponse struct {
 	Model  string       `json:"model,omitempty"`
 }
 
+// CapturedTicket identifies a single ticket created during project-agnostic batch capture.
+type CapturedTicket struct {
+	ProjectPath string     `json:"project_path"`
+	ProjectName string     `json:"project_name"`
+	ProjectSlug string     `json:"project_slug"`
+	Task        board.Task `json:"task"`
+}
+
+// CaptureBatchResponse is returned after project-agnostic capture creates one or more tickets.
+type CaptureBatchResponse struct {
+	State   AppState         `json:"state"`
+	Tickets []CapturedTicket `json:"tickets"`
+	UsedAI  bool             `json:"used_ai"`
+	Model   string           `json:"model,omitempty"`
+}
+
+// CaptureContext processes freeform user context across all known Kingfisher projects,
+// automatically routing each item to the matching project and splitting distinct ideas into
+// separate tickets.
+func (a *App) CaptureContext(rawContext, activeProjectPath, defaultStatus string) (CaptureBatchResponse, error) {
+	rawContext = strings.TrimSpace(rawContext)
+	if rawContext == "" {
+		return CaptureBatchResponse{}, fmt.Errorf("capture context cannot be empty")
+	}
+
+	a.mu.Lock()
+	projectsCopy := append([]registry.ProjectEntry(nil), a.reg.Projects...)
+	aiCfg := a.reg.Preferences.AI
+	ctx := a.ctx
+	loadedBoards := make(map[string]*board.Board, len(a.boards))
+	for k, v := range a.boards {
+		loadedBoards[k] = v
+	}
+	a.mu.Unlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var contexts []capture.ProjectContext
+	defaultSlug := ""
+	for _, p := range projectsCopy {
+		if !board.Exists(p.Path) {
+			continue
+		}
+		var b *board.Board
+		if cached, ok := loadedBoards[p.Path]; ok {
+			b = cached
+		} else if diskBoard, _, err := board.Load(p.Path); err == nil {
+			b = diskBoard
+		}
+		pc := capture.ProjectContext{
+			Slug:   p.Slug,
+			Name:   p.Name,
+			Prefix: p.Prefix,
+			Path:   p.Path,
+		}
+		if b != nil {
+			pc.Columns = append([]board.Column(nil), b.Columns...)
+			seen := map[string]bool{}
+			for _, t := range b.Tasks {
+				for _, tg := range t.Tags {
+					low := strings.ToLower(strings.TrimSpace(tg))
+					if low != "" && !seen[low] {
+						seen[low] = true
+						pc.Tags = append(pc.Tags, low)
+					}
+				}
+			}
+		}
+		contexts = append(contexts, pc)
+		if p.Path == activeProjectPath {
+			defaultSlug = p.Slug
+		}
+	}
+
+	if len(contexts) == 0 {
+		return CaptureBatchResponse{}, fmt.Errorf("no Kingfisher projects registered yet — open or initialize a folder first")
+	}
+	if defaultSlug == "" {
+		defaultSlug = contexts[0].Slug
+	}
+
+	batch := capture.ProcessBatch(ctx, aiCfg, rawContext, contexts, defaultSlug, defaultStatus)
+
+	pathBySlug := make(map[string]capture.ProjectContext, len(contexts))
+	for _, c := range contexts {
+		pathBySlug[c.Slug] = c
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	tickets := make([]CapturedTicket, 0, len(batch.Items))
+	for _, item := range batch.Items {
+		target, ok := pathBySlug[item.ProjectSlug]
+		if !ok {
+			target = contexts[0]
+		}
+
+		b, isOpen := a.boards[target.Path]
+		if !isOpen {
+			var err error
+			b, _, err = board.Load(target.Path)
+			if err != nil {
+				continue
+			}
+		}
+
+		task := b.AddTask(item.Title, item.Status, item.Priority, item.Description, item.Tags)
+		hash, err := board.SaveAtomic(target.Path, b)
+		if err != nil {
+			return CaptureBatchResponse{}, err
+		}
+		if isOpen {
+			if a.watcher != nil {
+				a.watcher.RecordSelfWrite(target.Path, hash)
+			}
+			a.boards[target.Path] = b
+			delete(a.errors, target.Path)
+		}
+
+		tickets = append(tickets, CapturedTicket{
+			ProjectPath: target.Path,
+			ProjectName: target.Name,
+			ProjectSlug: target.Slug,
+			Task:        task,
+		})
+	}
+
+	if len(tickets) == 0 {
+		return CaptureBatchResponse{}, fmt.Errorf("failed to file captured items")
+	}
+
+	return CaptureBatchResponse{
+		State:   a.snapshotLocked(),
+		Tickets: tickets,
+		UsedAI:  batch.UsedAI,
+		Model:   batch.Model,
+	}, nil
+}
+
 // CaptureTask processes raw freeform context with the configured local small LLM
 // (falling back to heuristic parsing when offline) and adds the resulting task to the board.
 func (a *App) CaptureTask(projectPath, rawContext, defaultStatus string) (CaptureResponse, error) {
