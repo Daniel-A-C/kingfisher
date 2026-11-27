@@ -34,12 +34,23 @@ make install
 ```sh
 kf init                          # Create .kingfisher.yaml & add to .git/info/exclude
 kf                               # Open current repo's board in Kingfisher
+kf capture "urgent: fix dnd"     # Process raw context via local small LLM into a structured ticket
 kf next                          # Show the highest-priority ready task
 kf next --json                   # Machine-readable next task for coding agents
 kf list [--status ready]         # List tasks
 kf add "Implement fuzzy search" --priority high --tags cli,ux
 kf move KF-1 active --note "Started working on fuzzy matcher"
 kf move KF-1 done --note "Completed and verified with go test ./..."
+```
+
+## Local Open-Source AI Capture (Ollama)
+
+Press `⌘N` to open the simplified single-box **Capture Context** window and hit `⌘Enter`. Kingfisher sends your raw thought to a tiny local open-source model (default: `qwen2.5:1.5b` via Ollama at `http://127.0.0.1:11434`, or any OpenAI-compatible local server like `llama-server` / LM Studio) to automatically generate the title, column, priority, tags, and formatted description—with an instant local heuristic fallback if no model server is running.
+
+```sh
+brew install ollama
+brew services start ollama
+ollama pull qwen2.5:1.5b
 ```
 
 ## Drop-In Coding Agent Instruction

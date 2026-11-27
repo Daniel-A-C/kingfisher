@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Daniel-A-C/kingfisher/internal/board"
+	"github.com/Daniel-A-C/kingfisher/internal/capture"
 	"github.com/Daniel-A-C/kingfisher/internal/ipc"
 	"github.com/Daniel-A-C/kingfisher/internal/registry"
 )
@@ -36,6 +38,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdList(args[1:], stdout, stderr)
 	case "add":
 		return cmdAdd(args[1:], stdout, stderr)
+	case "capture", "cap":
+		return cmdCapture(args[1:], stdout, stderr)
 	case "move", "mv":
 		return cmdMove(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -62,6 +66,7 @@ Usage:
   kf next [--json]            Print the highest-priority ready task
   kf list [--status S] [--json] List tasks on the current project board
   kf add <title> [flags]      Add a task to .kingfisher.yaml
+  kf capture <raw context>    Process raw context via local small LLM into a structured task
   kf move <ID> <status> [--note "..."]  Move a task and append agent_notes`)
 }
 
@@ -290,6 +295,45 @@ func cmdAdd(args []string, stdout, stderr io.Writer) int {
 	}
 
 	fmt.Fprintf(stdout, "Added %s [%s | %s] %s\n", task.ID, task.Status, task.Priority, task.Title)
+	return 0
+}
+
+func cmdCapture(args []string, stdout, stderr io.Writer) int {
+	raw := strings.TrimSpace(strings.Join(args, " "))
+	if raw == "" {
+		fmt.Fprintln(stderr, "error: capture context is required (e.g. kf capture \"urgent: fix drag glitch\")")
+		return 2
+	}
+
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(stderr, "error: %v\n", err)
+		return 1
+	}
+
+	b, _, err := board.Load(dir)
+	if err != nil {
+		fmt.Fprintf(stderr, "error: %v\n", err)
+		return 1
+	}
+
+	aiCfg := capture.DefaultConfig()
+	if reg, err := loadRegistry(); err == nil {
+		aiCfg = reg.Preferences.AI
+	}
+
+	res := capture.Process(context.Background(), aiCfg, raw, b, "ready")
+	task := b.AddTask(res.Title, res.Status, res.Priority, res.Description, res.Tags)
+	if _, err := board.SaveAtomic(dir, b); err != nil {
+		fmt.Fprintf(stderr, "error: %v\n", err)
+		return 1
+	}
+
+	mode := "heuristic fallback"
+	if res.UsedAI {
+		mode = res.Model
+	}
+	fmt.Fprintf(stdout, "Captured %s [%s | %s] %s (%s)\n", task.ID, task.Status, task.Priority, task.Title, mode)
 	return 0
 }
 

@@ -48,9 +48,34 @@ export interface ProjectEntry {
   pinned: boolean;
 }
 
+export interface AIConfig {
+  enabled: boolean;
+  provider: string;
+  endpoint: string;
+  model: string;
+  timeout_seconds?: number;
+}
+
+export interface AIStatus {
+  available: boolean;
+  provider: string;
+  model: string;
+  endpoint: string;
+  models: string[];
+  message: string;
+}
+
+export interface CaptureResponse {
+  board: Board;
+  task: Task;
+  used_ai: boolean;
+  model?: string;
+}
+
 export interface Preferences {
   opacity: number;
   scan_dirs: string[];
+  ai: AIConfig;
 }
 
 export interface AppState {

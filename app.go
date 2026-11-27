@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/Daniel-A-C/kingfisher/internal/board"
+	"github.com/Daniel-A-C/kingfisher/internal/capture"
 	"github.com/Daniel-A-C/kingfisher/internal/ipc"
 	"github.com/Daniel-A-C/kingfisher/internal/registry"
 	"github.com/Daniel-A-C/kingfisher/internal/watcher"
@@ -347,6 +348,84 @@ func (a *App) saveBoardLocked(projectPath string, b *board.Board) error {
 	a.boards[projectPath] = b
 	delete(a.errors, projectPath)
 	return nil
+}
+
+// CaptureResponse is returned after local LLM (or heuristic) capture creates a task.
+type CaptureResponse struct {
+	Board  *board.Board `json:"board"`
+	Task   board.Task   `json:"task"`
+	UsedAI bool         `json:"used_ai"`
+	Model  string       `json:"model,omitempty"`
+}
+
+// CaptureTask processes raw freeform context with the configured local small LLM
+// (falling back to heuristic parsing when offline) and adds the resulting task to the board.
+func (a *App) CaptureTask(projectPath, rawContext, defaultStatus string) (CaptureResponse, error) {
+	rawContext = strings.TrimSpace(rawContext)
+	if rawContext == "" {
+		return CaptureResponse{}, fmt.Errorf("capture context cannot be empty")
+	}
+
+	a.mu.Lock()
+	b, ok := a.boards[projectPath]
+	if !ok {
+		a.mu.Unlock()
+		return CaptureResponse{}, fmt.Errorf("project not loaded: %s", projectPath)
+	}
+	// Snapshot board metadata & AI config before releasing lock during LLM call
+	boardSnapshot := &board.Board{
+		Project: b.Project,
+		Columns: append([]board.Column(nil), b.Columns...),
+		Tasks:   append([]board.Task(nil), b.Tasks...),
+	}
+	aiCfg := a.reg.Preferences.AI
+	ctx := a.ctx
+	a.mu.Unlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	res := capture.Process(ctx, aiCfg, rawContext, boardSnapshot, defaultStatus)
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	b, ok = a.boards[projectPath]
+	if !ok {
+		return CaptureResponse{}, fmt.Errorf("project not loaded: %s", projectPath)
+	}
+	task := b.AddTask(res.Title, res.Status, res.Priority, res.Description, res.Tags)
+	if err := a.saveBoardLocked(projectPath, b); err != nil {
+		return CaptureResponse{}, err
+	}
+	return CaptureResponse{
+		Board:  b,
+		Task:   task,
+		UsedAI: res.UsedAI,
+		Model:  res.Model,
+	}, nil
+}
+
+// GetAIStatus probes the configured local LLM endpoint and returns live availability.
+func (a *App) GetAIStatus() capture.Status {
+	a.mu.Lock()
+	cfg := a.reg.Preferences.AI
+	ctx := a.ctx
+	a.mu.Unlock()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return capture.CheckStatus(ctx, cfg)
+}
+
+// UpdateAIConfig updates and persists the local LLM configuration.
+func (a *App) UpdateAIConfig(cfg capture.Config) registry.Preferences {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.reg.Preferences.AI = cfg
+	_ = a.reg.Save()
+	return a.reg.Preferences
 }
 
 // CreateTask adds a new task to the specified project board and saves atomically.

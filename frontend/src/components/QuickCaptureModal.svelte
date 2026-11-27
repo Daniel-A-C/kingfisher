@@ -1,35 +1,41 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { Column, Priority } from '../lib/types';
+  import { api } from '../lib/api';
+  import type { AIConfig, AIStatus } from '../lib/types';
   import { attachLightDismissFallback } from '../lib/dialog';
 
   interface Props {
     open: boolean;
-    columns: Column[];
     defaultStatus: string;
     projectName: string;
+    aiConfig: AIConfig;
     onClose: () => void;
-    onSubmit: (payload: {
-      title: string;
-      status: string;
-      priority: Priority;
-      tags: string[];
-      description: string;
-    }) => void;
+    onCapture: (rawContext: string, defaultStatus: string) => Promise<void>;
+    onSaveAIConfig: (cfg: AIConfig) => Promise<void>;
   }
 
-  let { open, columns, defaultStatus, projectName, onClose, onSubmit }: Props = $props();
+  let {
+    open,
+    defaultStatus,
+    projectName,
+    aiConfig,
+    onClose,
+    onCapture,
+    onSaveAIConfig,
+  }: Props = $props();
 
   let dialogEl: HTMLDialogElement | undefined = $state();
-  let titleInputEl: HTMLInputElement | undefined = $state();
+  let textareaEl: HTMLTextAreaElement | undefined = $state();
 
-  let title = $state('');
-  let status = $state('ready');
-  let priority = $state<Priority>('medium');
-  let tagsRaw = $state('');
-  let description = $state('');
+  let rawContext = $state('');
+  let processing = $state(false);
+  let showSettings = $state(false);
+  let aiStatus = $state<AIStatus | null>(null);
 
-  const priorities: Priority[] = ['low', 'medium', 'high', 'critical'];
+  let editProvider = $state('ollama');
+  let editEndpoint = $state('http://127.0.0.1:11434');
+  let editModel = $state('qwen2.5:1.5b');
+  let editEnabled = $state(true);
 
   onMount(() => {
     if (!dialogEl) return;
@@ -39,13 +45,19 @@
   $effect(() => {
     if (!dialogEl) return;
     if (open && !dialogEl.open) {
-      title = '';
-      status = defaultStatus || columns[0]?.id || 'ready';
-      priority = 'medium';
-      tagsRaw = '';
-      description = '';
+      rawContext = '';
+      processing = false;
+      showSettings = false;
+      editProvider = aiConfig.provider || 'ollama';
+      editEndpoint = aiConfig.endpoint || 'http://127.0.0.1:11434';
+      editModel = aiConfig.model || 'qwen2.5:1.5b';
+      editEnabled = aiConfig.enabled ?? true;
       dialogEl.showModal();
-      queueMicrotask(() => titleInputEl?.focus());
+      queueMicrotask(() => textareaEl?.focus());
+      api
+        .getAIStatus()
+        .then((st) => (aiStatus = st))
+        .catch(() => (aiStatus = null));
     } else if (!open && dialogEl.open) {
       dialogEl.close();
     }
@@ -56,110 +68,151 @@
     if (open) onClose();
   }
 
-  function handleSubmit(e: SubmitEvent) {
+  async function submitCapture() {
+    const trimmed = rawContext.trim();
+    if (!trimmed || processing) return;
+    processing = true;
+    try {
+      await onCapture(trimmed, defaultStatus);
+      dialogEl?.close();
+    } finally {
+      processing = false;
+    }
+  }
+
+  function handleFormSubmit(e: SubmitEvent) {
     e.preventDefault();
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    const tags = tagsRaw
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    onSubmit({
-      title: trimmed,
-      status,
-      priority,
-      tags,
-      description: description.trim(),
+    submitCapture();
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      submitCapture();
+    }
+  }
+
+  async function saveSettings() {
+    await onSaveAIConfig({
+      enabled: editEnabled,
+      provider: editProvider,
+      endpoint: editEndpoint.trim(),
+      model: editModel.trim(),
     });
-    dialogEl?.close();
+    aiStatus = await api.getAIStatus().catch(() => null);
+    showSettings = false;
+    queueMicrotask(() => textareaEl?.focus());
   }
 </script>
 
 <dialog
   bind:this={dialogEl}
-  class="kf-dialog"
+  class="kf-dialog capture-dialog"
   aria-labelledby="capture-title"
   {...({ closedby: 'any' } as Record<string, string>)}
   onclose={handleClose}
 >
-  <form class="capture-form" onsubmit={handleSubmit}>
+  <form class="capture-form" onsubmit={handleFormSubmit}>
     <header class="modal-header">
       <div>
         <span class="modal-eyebrow">✦ {projectName}</span>
-        <h1 id="capture-title" class="modal-title">Quick Capture</h1>
+        <h1 id="capture-title" class="modal-title">Capture Context</h1>
       </div>
-      <button type="button" class="kf-btn" onclick={() => dialogEl?.close()}>Esc</button>
+      <div class="header-right">
+        <button
+          type="button"
+          class="ai-pill"
+          class:online={aiStatus?.available}
+          onclick={() => (showSettings = !showSettings)}
+          title={aiStatus?.message ?? 'Configure local model'}
+        >
+          <span class="ai-dot"></span>
+          <span>
+            {#if aiStatus?.available}
+              {aiStatus.model}
+            {:else}
+              Local AI · Fallback
+            {/if}
+          </span>
+        </button>
+        <button type="button" class="kf-btn" onclick={() => dialogEl?.close()}>Esc</button>
+      </div>
     </header>
 
     <div class="modal-body">
-      <label class="field">
-        <span class="field-label">Task Title</span>
-        <input
-          bind:this={titleInputEl}
-          bind:value={title}
-          class="kf-input"
-          type="text"
-          placeholder="What needs to be built or fixed?"
-          required
-        />
-      </label>
+      <textarea
+        bind:this={textareaEl}
+        bind:value={rawContext}
+        class="kf-textarea context-box"
+        rows="5"
+        disabled={processing}
+        placeholder="Dump your raw idea, bug, or context here…&#10;&#10;The local model will automatically generate a clean title, column, priority, tags, and formatted description."
+        onkeydown={handleKeyDown}
+      ></textarea>
 
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label">Column</span>
-          <select bind:value={status} class="kf-select">
-            {#each columns as col}
-              <option value={col.id}>{col.name}</option>
-            {/each}
-          </select>
-        </label>
-
-        <div class="field">
-          <span class="field-label">Priority</span>
-          <div class="prio-pills">
-            {#each priorities as p}
-              <button
-                type="button"
-                class="prio-pill prio-{p}"
-                class:selected={priority === p}
-                onclick={() => (priority = p)}
-              >
-                {p}
-              </button>
-            {/each}
+      {#if showSettings}
+        <div class="ai-settings">
+          <div class="settings-row">
+            <label class="field">
+              <span class="field-label">Provider</span>
+              <select bind:value={editProvider} class="kf-select">
+                <option value="ollama">Ollama</option>
+                <option value="openai">OpenAI-compatible (llama-server / LM Studio)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Model</span>
+              <input bind:value={editModel} class="kf-input" type="text" placeholder="qwen2.5:1.5b" />
+            </label>
           </div>
+          <div class="settings-row">
+            <label class="field">
+              <span class="field-label">Local Endpoint</span>
+              <input
+                bind:value={editEndpoint}
+                class="kf-input"
+                type="url"
+                placeholder="http://127.0.0.1:11434"
+              />
+            </label>
+            <button type="button" class="kf-btn kf-btn-primary save-ai-btn" onclick={saveSettings}>
+              Save Model
+            </button>
+          </div>
+          {#if aiStatus?.message}
+            <p class="ai-hint">{aiStatus.message}</p>
+          {/if}
         </div>
-      </div>
-
-      <label class="field">
-        <span class="field-label">Tags (comma separated)</span>
-        <input
-          bind:value={tagsRaw}
-          class="kf-input"
-          type="text"
-          placeholder="cli, ux, parser"
-        />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Description</span>
-        <textarea
-          bind:value={description}
-          class="kf-textarea"
-          rows="3"
-          placeholder="Context for yourself or a coding agent..."
-        ></textarea>
-      </label>
+      {/if}
     </div>
 
     <footer class="modal-footer">
-      <button type="button" class="kf-btn" onclick={() => dialogEl?.close()}>Cancel</button>
-      <button type="submit" class="kf-btn kf-btn-primary">✦ Add to Board</button>
+      <span class="capture-hint">
+        <span class="kf-kbd">⌘Enter</span> to distill &amp; file
+      </span>
+      <div class="footer-actions">
+        <button type="button" class="kf-btn" onclick={() => dialogEl?.close()}>Cancel</button>
+        <button
+          type="submit"
+          class="kf-btn kf-btn-primary"
+          disabled={processing || !rawContext.trim()}
+        >
+          {#if processing}
+            ✦ Distilling…
+          {:else}
+            ✦ Capture
+          {/if}
+        </button>
+      </div>
     </footer>
   </form>
 </dialog>
 
 <style>
+  .capture-dialog {
+    max-width: min(580px, 92vw);
+  }
+
   .capture-form {
     display: flex;
     flex-direction: column;
@@ -169,8 +222,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid rgba(217, 161, 74, 0.28);
+    gap: 12px;
+    padding: 15px 20px 12px;
+    border-bottom: 1px solid rgba(217, 161, 74, 0.26);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .modal-eyebrow {
@@ -190,63 +250,114 @@
     letter-spacing: 0.05em;
   }
 
+  .ai-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(217, 161, 74, 0.36);
+    background: rgba(8, 22, 22, 0.65);
+    color: var(--kf-ivory-soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 140ms ease, color 140ms ease;
+  }
+
+  .ai-pill:hover {
+    border-color: var(--kf-ochre);
+    color: var(--kf-ivory);
+  }
+
+  .ai-pill.online {
+    border-color: rgba(65, 211, 230, 0.55);
+    color: #b7eef5;
+  }
+
+  .ai-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--kf-gold);
+  }
+
+  .ai-pill.online .ai-dot {
+    background: var(--kf-cerulean);
+    box-shadow: 0 0 8px var(--kf-cerulean);
+  }
+
   .modal-body {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     padding: 16px 20px;
+  }
+
+  .context-box {
+    min-height: 132px;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 12px 14px;
+  }
+
+  .ai-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(217, 161, 74, 0.28);
+    background: rgba(6, 17, 18, 0.65);
+  }
+
+  .settings-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
   }
 
   .field {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
     flex: 1;
   }
 
-  .field-row {
-    display: flex;
-    gap: 12px;
-    align-items: flex-end;
-  }
-
   .field-label {
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--kf-ivory-dim);
   }
 
-  .prio-pills {
-    display: flex;
-    gap: 5px;
+  .save-ai-btn {
+    height: 36px;
+    flex-shrink: 0;
   }
 
-  .prio-pill {
-    flex: 1;
-    padding: 8px 6px;
-    border-radius: 8px;
-    border: 1px solid rgba(217, 161, 74, 0.28);
-    background: rgba(6, 17, 18, 0.65);
-    color: var(--kf-ivory-soft);
+  .ai-hint {
+    margin: 0;
     font-family: var(--font-mono);
     font-size: 11px;
-    text-transform: capitalize;
-    cursor: pointer;
-    transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
-  }
-
-  .prio-pill.selected {
-    border-color: var(--prio-color);
-    background: color-mix(in srgb, var(--prio-color) 22%, rgba(6, 17, 18, 0.8));
-    color: #ffffff;
+    color: var(--kf-ivory-dim);
   }
 
   .modal-footer {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
     padding: 12px 20px 16px;
     border-top: 1px solid rgba(217, 161, 74, 0.22);
+  }
+
+  .capture-hint {
+    font-size: 11.5px;
+    color: var(--kf-ivory-dim);
+  }
+
+  .footer-actions {
+    display: flex;
+    gap: 10px;
   }
 </style>

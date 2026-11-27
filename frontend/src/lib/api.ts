@@ -1,8 +1,11 @@
 import type {
+  AIConfig,
+  AIStatus,
   AppState,
   Board,
   BoardErrorEvent,
   BoardUpdateEvent,
+  CaptureResponse,
   Preferences,
   TaskPatch,
 } from './types';
@@ -25,6 +28,13 @@ declare global {
             prefix: string,
             useGitignore: boolean
           ): Promise<AppState>;
+          CaptureTask(
+            projectPath: string,
+            rawContext: string,
+            defaultStatus: string
+          ): Promise<CaptureResponse>;
+          GetAIStatus(): Promise<AIStatus>;
+          UpdateAIConfig(cfg: AIConfig): Promise<Preferences>;
           CreateTask(
             projectPath: string,
             title: string,
@@ -77,6 +87,10 @@ export const api = {
   pickFolder: () => backend().PickFolder(),
   initProject: (dir: string, name: string, prefix: string, useGitignore: boolean) =>
     backend().InitProject(dir, name, prefix, useGitignore),
+  captureTask: (projectPath: string, rawContext: string, defaultStatus: string) =>
+    backend().CaptureTask(projectPath, rawContext, defaultStatus),
+  getAIStatus: () => backend().GetAIStatus(),
+  updateAIConfig: (cfg: AIConfig) => backend().UpdateAIConfig(cfg),
   createTask: (
     projectPath: string,
     title: string,

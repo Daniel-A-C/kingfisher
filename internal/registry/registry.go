@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Daniel-A-C/kingfisher/internal/board"
+	"github.com/Daniel-A-C/kingfisher/internal/capture"
 )
 
 // ProjectEntry is a lightweight pointer to a local repo containing .kingfisher.yaml.
@@ -23,10 +24,11 @@ type ProjectEntry struct {
 	Pinned     bool   `json:"pinned"`
 }
 
-// Preferences holds global UI and auto-discovery settings.
+// Preferences holds global UI, auto-discovery, and local AI capture settings.
 type Preferences struct {
-	Opacity  float64  `json:"opacity"`
-	ScanDirs []string `json:"scan_dirs"`
+	Opacity  float64        `json:"opacity"`
+	ScanDirs []string       `json:"scan_dirs"`
+	AI       capture.Config `json:"ai"`
 }
 
 // Registry stores known project paths, open tab order, and user preferences.
@@ -58,6 +60,7 @@ func DefaultPreferences() Preferences {
 	return Preferences{
 		Opacity:  0.55,
 		ScanDirs: []string{"~/Documents/programs"},
+		AI:       capture.DefaultConfig(),
 	}
 }
 
@@ -89,6 +92,9 @@ func Load(path string) (*Registry, error) {
 	}
 	if r.Preferences.ScanDirs == nil {
 		r.Preferences.ScanDirs = DefaultPreferences().ScanDirs
+	}
+	if r.Preferences.AI.Endpoint == "" && r.Preferences.AI.Model == "" && !r.Preferences.AI.Enabled {
+		r.Preferences.AI = capture.DefaultConfig()
 	}
 	if r.Preferences.Opacity < 0 || r.Preferences.Opacity > 0.95 {
 		r.Preferences.Opacity = 0.55

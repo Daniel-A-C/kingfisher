@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, subscribeEvents } from './lib/api';
-  import type { AppState, Priority, Task, TaskPatch } from './lib/types';
+  import type { AIConfig, AppState, Task, TaskPatch } from './lib/types';
   import TabBar from './components/TabBar.svelte';
   import KanbanBoard from './components/KanbanBoard.svelte';
   import QuickCaptureModal from './components/QuickCaptureModal.svelte';
@@ -14,7 +14,16 @@
     active_tab: '',
     boards: {},
     errors: {},
-    preferences: { opacity: 0.55, scan_dirs: ['~/Documents/programs'] },
+    preferences: {
+      opacity: 0.55,
+      scan_dirs: ['~/Documents/programs'],
+      ai: {
+        enabled: true,
+        provider: 'ollama',
+        endpoint: 'http://127.0.0.1:11434',
+        model: 'qwen2.5:1.5b',
+      },
+    },
   });
 
   let switcherOpen = $state(false);
@@ -207,30 +216,24 @@
     await api.setOpacity(value);
   }
 
-  async function handleCreateTask(payload: {
-    title: string;
-    status: string;
-    priority: Priority;
-    tags: string[];
-    description: string;
-  }) {
+  async function handleCaptureTask(rawContext: string, defaultStatus: string) {
     if (!appState.active_tab) return;
     try {
-      const updated = await api.createTask(
-        appState.active_tab,
-        payload.title,
-        payload.status,
-        payload.priority,
-        payload.description,
-        payload.tags
-      );
+      const res = await api.captureTask(appState.active_tab, rawContext, defaultStatus);
       appState = {
         ...appState,
-        boards: { ...appState.boards, [appState.active_tab]: updated },
+        boards: { ...appState.boards, [appState.active_tab]: res.board },
       };
+      const engine = res.used_ai ? res.model || 'local AI' : 'heuristic fallback';
+      showToast(`✦ ${res.task.id} filed → ${res.task.status} (${engine})`);
     } catch (err) {
-      showToast(`Failed to add task: ${err}`);
+      showToast(`Capture failed: ${err}`);
     }
+  }
+
+  async function handleSaveAIConfig(cfg: AIConfig) {
+    const prefs = await api.updateAIConfig(cfg);
+    appState = { ...appState, preferences: prefs };
   }
 
   async function handleSaveTask(taskID: string, patch: TaskPatch) {
@@ -358,11 +361,12 @@
 
   <QuickCaptureModal
     open={captureOpen}
-    columns={activeBoard?.columns ?? []}
     defaultStatus={captureColumn}
     projectName={activeBoard?.project.name ?? ''}
+    aiConfig={appState.preferences.ai}
     onClose={() => (captureOpen = false)}
-    onSubmit={handleCreateTask}
+    onCapture={handleCaptureTask}
+    onSaveAIConfig={handleSaveAIConfig}
   />
 
   <TaskDetailDrawer
