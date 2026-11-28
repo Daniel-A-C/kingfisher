@@ -101,52 +101,75 @@
         role="region"
         aria-label={col.name}
       >
-        <!-- Alphonse Mucha Sunburst & Tiffany Lancet Arch Crown -->
+        <!-- Ref 4 Inspired Top Botanical Frieze Band -->
+        <div class="col-frieze-bar" aria-hidden="true">
+          <svg viewBox="0 0 300 16" preserveAspectRatio="none">
+            <rect x="2" y="2" width="296" height="12" rx="6" fill="rgba(150, 38, 48, 0.22)" stroke="rgba(246, 211, 136, 0.45)" stroke-width="0.9" />
+            <path
+              d="M12 8 Q 36 2, 60 8 T 108 8 T 156 8 T 204 8 T 252 8 T 288 8"
+              fill="none"
+              stroke="#f6d388"
+              stroke-width="1"
+              opacity="0.72"
+            />
+            {#each [36, 84, 132, 168, 216, 264] as cx}
+              <circle {cx} cy="8" r="2.2" fill={theme.jewel} stroke="#f6d388" stroke-width="0.6" />
+            {/each}
+          </svg>
+        </div>
+
+        <!-- Alphonse Mucha Sunburst & Lavirotte Lancet Arch Crown -->
         <div class="col-arch-header">
-          <svg class="mucha-arch" viewBox="0 0 300 66" preserveAspectRatio="none" aria-hidden="true">
+          <svg class="mucha-arch" viewBox="0 0 300 72" preserveAspectRatio="none" aria-hidden="true">
+            <!-- Stained-glass scalloped halo fan -->
+            <path
+              d="M16 66 C16 20, 66 8, 150 8 C234 8, 284 20, 284 66 Z"
+              fill="rgba(150, 38, 48, 0.14)"
+            />
             <!-- Radiating stained-glass halo rays -->
-            <g stroke={theme.stroke} stroke-width="0.65" opacity="0.38">
-              <line x1="150" y1="22" x2="150" y2="3" />
-              <line x1="150" y1="22" x2="122" y2="6" />
-              <line x1="150" y1="22" x2="178" y2="6" />
-              <line x1="150" y1="22" x2="94" y2="12" />
-              <line x1="150" y1="22" x2="206" y2="12" />
-              <line x1="150" y1="22" x2="66" y2="22" />
-              <line x1="150" y1="22" x2="234" y2="22" />
+            <g stroke={theme.stroke} stroke-width="0.75" opacity="0.46">
+              <line x1="150" y1="24" x2="150" y2="3" />
+              <line x1="150" y1="24" x2="122" y2="6" />
+              <line x1="150" y1="24" x2="178" y2="6" />
+              <line x1="150" y1="24" x2="94" y2="12" />
+              <line x1="150" y1="24" x2="206" y2="12" />
+              <line x1="150" y1="24" x2="64" y2="24" />
+              <line x1="150" y1="24" x2="236" y2="24" />
             </g>
             <!-- Outer lancet arch -->
             <path
-              d="M6 62 C6 18, 60 5, 150 5 C240 5, 294 18, 294 62"
+              d="M6 68 C6 18, 60 5, 150 5 C240 5, 294 18, 294 68"
               fill="none"
               stroke={theme.stroke}
-              stroke-width="1.8"
+              stroke-width="2"
             />
             <!-- Inner gilded halo ring -->
             <path
-              d="M18 62 C18 26, 68 14, 150 14 C232 14, 282 26, 282 62"
+              d="M18 68 C18 26, 68 14, 150 14 C232 14, 282 26, 282 68"
               fill="none"
-              stroke="rgba(246, 211, 136, 0.44)"
-              stroke-width="1.1"
+              stroke="rgba(246, 211, 136, 0.54)"
+              stroke-width="1.2"
+              stroke-dasharray="4 3"
             />
-            <!-- Symmetrical whiplash botanical scrolls flanking crown -->
+            <!-- Lavirotte wrought-iron botanical omega scrolls -->
             <path
-              d="M34 46 C44 28, 72 22, 92 27 C80 34, 62 34, 54 44"
+              d="M28 52 C40 28, 72 20, 96 27 C80 36, 62 36, 52 48"
               fill="none"
-              stroke="rgba(246, 211, 136, 0.55)"
-              stroke-width="1"
+              stroke="rgba(246, 211, 136, 0.68)"
+              stroke-width="1.15"
             />
             <path
-              d="M266 46 C256 28, 228 22, 208 27 C220 34, 238 34, 246 44"
+              d="M272 52 C260 28, 228 20, 204 27 C220 36, 238 36, 248 48"
               fill="none"
-              stroke="rgba(246, 211, 136, 0.55)"
-              stroke-width="1"
+              stroke="rgba(246, 211, 136, 0.68)"
+              stroke-width="1.15"
             />
             <!-- Crown jewel medallion -->
-            <circle cx="150" cy="14" r="7.5" fill="rgba(8, 24, 25, 0.92)" stroke="#f6d388" stroke-width="1.2" />
-            <circle cx="150" cy="14" r="3.4" fill={theme.jewel} />
+            <circle cx="150" cy="15" r="8.5" fill="rgba(8, 22, 26, 0.94)" stroke="#f6d388" stroke-width="1.4" />
+            <circle cx="150" cy="15" r="4.2" fill={theme.jewel} />
             <!-- Corner finials -->
-            <circle cx="24" cy="40" r="2" fill="#f6d388" opacity="0.7" />
-            <circle cx="276" cy="40" r="2" fill="#f6d388" opacity="0.7" />
+            <circle cx="22" cy="42" r="2.4" fill="#f6d388" opacity="0.82" />
+            <circle cx="278" cy="42" r="2.4" fill="#f6d388" opacity="0.82" />
           </svg>
 
           <div class="col-title-row">
@@ -182,6 +205,12 @@
             </div>
           {/each}
         </div>
+
+        <!-- Bottom ornamental lithograph foot-rail -->
+        <svg class="col-foot-rail" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M14 6 Q 150 12, 286 6" fill="none" stroke="rgba(246, 211, 136, 0.45)" stroke-width="1" />
+          <circle cx="150" cy="8.5" r="2.2" fill={theme.jewel} />
+        </svg>
       </div>
     {/each}
   </div>
@@ -308,11 +337,31 @@
       inset 0 0 24px rgba(70, 217, 236, 0.16);
   }
 
+  .col-frieze-bar {
+    height: 15px;
+    padding: 4px 10px 0;
+    flex-shrink: 0;
+  }
+
+  .col-frieze-bar svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
   .col-arch-header {
     position: relative;
     padding: 24px 12px 11px;
-    border-bottom: 1px solid rgba(220, 162, 72, 0.32);
+    border-bottom: 1px solid rgba(246, 211, 136, 0.36);
     flex-shrink: 0;
+  }
+
+  .col-foot-rail {
+    width: 100%;
+    height: 12px;
+    display: block;
+    flex-shrink: 0;
+    opacity: 0.78;
   }
 
   .mucha-arch {

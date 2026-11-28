@@ -1,5 +1,5 @@
 :root {
-  /* Kingfisher Jewel-Tone Art Nouveau Palette */
+  /* Kingfisher Jewel-Tone Art Nouveau Palette (Mucha / Horta / Lavirotte) */
   --kf-teal: #1ea8b8;
   --kf-cerulean: #46d9ec;
   --kf-teal-deep: #0c5864;
@@ -8,14 +8,16 @@
   --kf-antique-gold: #9d712d;
   --kf-copper: #c46d34;
   --kf-vermilion: #e65d38;
+  --kf-crimson: #962630;
+  --kf-crimson-bright: #c83e47;
   --kf-emerald: #2f9e7a;
   --kf-amethyst: #9f79c8;
   --kf-sage: #6bb594;
 
-  /* Translucent stained-glass base RGBs */
-  --kf-moss-rgb: 7, 21, 21;
-  --kf-patina-rgb: 13, 35, 34;
-  --kf-card-rgb: 11, 28, 29;
+  /* Translucent stained-glass base RGBs (Deep Prussian midnight-teal) */
+  --kf-moss-rgb: 7, 20, 24;
+  --kf-patina-rgb: 12, 34, 38;
+  --kf-card-rgb: 11, 27, 32;
   --kf-opacity: 0.55;
 
   /* Warm parchment / ivory typography for crisp legibility over wallpapers */
@@ -70,29 +72,111 @@ body,
   background:
     radial-gradient(
       ellipse at 14% 0%,
-      rgba(30, 168, 184, calc(var(--kf-opacity) * 0.34 + 0.05)) 0%,
+      rgba(30, 168, 184, calc(var(--kf-opacity) * 0.36 + 0.06)) 0%,
       transparent 52%
     ),
     radial-gradient(
       ellipse at 86% 6%,
-      rgba(220, 162, 72, calc(var(--kf-opacity) * 0.22 + 0.03)) 0%,
+      rgba(150, 38, 48, calc(var(--kf-opacity) * 0.28 + 0.05)) 0%,
       transparent 48%
     ),
     radial-gradient(
       ellipse at 50% 100%,
-      rgba(196, 109, 52, calc(var(--kf-opacity) * 0.26 + 0.04)) 0%,
-      transparent 58%
+      rgba(220, 162, 72, calc(var(--kf-opacity) * 0.24 + 0.04)) 0%,
+      transparent 56%
     ),
     rgba(var(--kf-moss-rgb), var(--kf-opacity));
-  border: 1.5px solid var(--kf-lead-gold);
+  border: 2px solid var(--kf-lead-gold-bright);
   border-radius: 10px;
   box-shadow:
-    inset 0 0 0 4px rgba(10, 26, 26, calc(var(--kf-opacity) * 0.45)),
-    inset 0 0 0 5px rgba(246, 211, 136, 0.24),
-    inset 0 1px 28px rgba(70, 217, 236, 0.1);
+    inset 0 0 0 4px rgba(10, 24, 28, calc(var(--kf-opacity) * 0.55)),
+    inset 0 0 0 6px rgba(246, 211, 136, 0.28),
+    inset 0 0 0 8px rgba(150, 38, 48, 0.16),
+    inset 0 1px 32px rgba(70, 217, 236, 0.12);
   overflow: hidden;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.78);
 }
+
+/* Horta whiplash & Mucha celestial backdrop tapestry */
+.kf-tapestry {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: calc(var(--kf-opacity) * 0.52 + 0.14);
+}
+
+/* Raycast / Summon Entrance Bloom (compositor-only, zero input lag) */
+.kf-summon-bloom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kf-shell.summoned:not(.reduce-motion) .kf-summon-bloom {
+    animation: kfSummonBloom 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .kf-shell.summoned-raycast:not(.reduce-motion) .kf-summon-bloom {
+    animation: kfRaycastBloom 780ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .kf-shell.summoned:not(.reduce-motion) .kf-corner {
+    animation: kfCornerGlow 650ms ease-out forwards;
+  }
+}
+
+@keyframes kfSummonBloom {
+  0% {
+    opacity: 0.82;
+    transform: scale(0.86) rotate(-6deg);
+  }
+  45% {
+    opacity: 0.42;
+    transform: scale(1.03) rotate(2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1) rotate(0deg);
+  }
+}
+
+@keyframes kfRaycastBloom {
+  0% {
+    opacity: 0.96;
+    transform: scale(0.78) rotate(-14deg);
+  }
+  38% {
+    opacity: 0.58;
+    transform: scale(1.04) rotate(4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.14) rotate(0deg);
+  }
+}
+
+@keyframes kfCornerGlow {
+  0% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+/* Keep corner transforms intact when animating */
+.kf-corner.tr { --corner-flip: scaleX(-1); }
+.kf-corner.bl { --corner-flip: scaleY(-1); }
+.kf-corner.br { --corner-flip: scale(-1); }
 
 /* Accessibility: High-Contrast mode */
 .kf-shell.high-contrast {
@@ -115,20 +199,20 @@ body,
   animation: none !important;
 }
 
-/* Ornate Art Nouveau botanical corner cartouches */
+/* Ornate Art Nouveau botanical corner cartouches & Sun/Moon roundels */
 .kf-corner {
   position: absolute;
-  width: 82px;
-  height: 82px;
+  width: 92px;
+  height: 92px;
   pointer-events: none;
   z-index: 20;
-  opacity: 0.86;
-  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.55));
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62));
 }
 .kf-corner.tl { top: 2px; left: 2px; }
 .kf-corner.tr { top: 2px; right: 2px; transform: scaleX(-1); }
-.kf-corner.bl { bottom: 2px; left: 2px; transform: scaleY(-1); }
-.kf-corner.br { bottom: 2px; right: 2px; transform: scale(-1); }
+.kf-corner.bl { bottom: 2px; left: 2px; }
+.kf-corner.br { bottom: 2px; right: 2px; }
 
 /* Delicate gilded side filigree rails */
 .kf-side-rail {

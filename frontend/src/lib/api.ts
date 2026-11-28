@@ -10,6 +10,7 @@ import type {
   Preferences,
   ProjectOverview,
   TaskPatch,
+  WindowSummonedEvent,
 } from './types';
 
 declare global {
@@ -133,6 +134,7 @@ export function subscribeEvents(handlers: {
   onBoardUpdated: (ev: BoardUpdateEvent) => void;
   onBoardError: (ev: BoardErrorEvent) => void;
   onStateChanged: (state: AppState) => void;
+  onWindowSummoned?: (ev: WindowSummonedEvent) => void;
 }): () => void {
   const rt = window.runtime;
   if (!rt) return () => {};
@@ -141,6 +143,9 @@ export function subscribeEvents(handlers: {
     rt.EventsOn('board:updated', (ev: BoardUpdateEvent) => handlers.onBoardUpdated(ev)),
     rt.EventsOn('board:error', (ev: BoardErrorEvent) => handlers.onBoardError(ev)),
     rt.EventsOn('state:changed', (state: AppState) => handlers.onStateChanged(state)),
+    rt.EventsOn('window:summoned', (ev: WindowSummonedEvent) =>
+      handlers.onWindowSummoned?.(ev)
+    ),
   ];
   return () => unsubs.forEach((u) => u && u());
 }

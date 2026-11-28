@@ -49,6 +49,19 @@
   let selectedTaskID = $state<string | null>(null);
   let toastMessage = $state<string | null>(null);
   let toastTimer: number | undefined;
+  let summonState = $state<'idle' | 'activate' | 'raycast'>('idle');
+  let summonTimer: number | undefined;
+
+  function triggerSummonBloom(source: string) {
+    summonState = 'idle';
+    if (summonTimer) window.clearTimeout(summonTimer);
+    requestAnimationFrame(() => {
+      summonState = source === 'raycast' ? 'raycast' : 'activate';
+      summonTimer = window.setTimeout(() => {
+        summonState = 'idle';
+      }, 820);
+    });
+  }
 
   let activeBoard = $derived(
     appState.active_tab ? appState.boards[appState.active_tab] ?? null : null
@@ -131,6 +144,9 @@
       onStateChanged: (state) => {
         appState = state;
         applyOpacityVar(state.preferences.opacity);
+      },
+      onWindowSummoned: ({ source }) => {
+        triggerSummonBloom(source);
       },
     });
 
@@ -395,44 +411,90 @@
   class="kf-shell"
   class:high-contrast={appState.preferences.high_contrast}
   class:reduce-motion={appState.preferences.reduce_motion}
+  class:summoned={summonState !== 'idle'}
+  class:summoned-raycast={summonState === 'raycast'}
 >
-  <!-- Lush Maximalist Art Nouveau Botanical Corner Cartouches -->
-  {#each ['tl', 'tr', 'bl', 'br'] as pos}
-    <svg class="kf-corner {pos}" viewBox="0 0 90 90" aria-hidden="true">
-      <!-- Outer whiplash framing scroll -->
-      <path
-        d="M4 76 C4 26, 26 4, 76 4"
-        fill="none"
-        stroke="rgba(246, 211, 136, 0.82)"
-        stroke-width="1.8"
-      />
-      <!-- Secondary gilded vine curl -->
-      <path
-        d="M11 64 C11 32, 32 11, 64 11"
-        fill="none"
-        stroke="rgba(220, 162, 72, 0.65)"
-        stroke-width="1.1"
-      />
-      <!-- Organic acanthus / iris whiplash tendril -->
-      <path
-        d="M6 52 C22 48, 28 32, 22 22 C32 28, 48 22, 52 6"
-        fill="none"
-        stroke="rgba(70, 217, 236, 0.62)"
-        stroke-width="1.2"
-      />
-      <!-- Stained-glass petal inlay -->
-      <path
-        d="M10 10 C22 10, 28 18, 22 22 C18 28, 10 22, 10 10 Z"
-        fill="rgba(30, 168, 184, 0.34)"
-        stroke="#f6d388"
-        stroke-width="1"
-      />
-      <!-- Corner jewel beads -->
-      <circle cx="15" cy="15" r="3" fill="#46d9ec" stroke="#f6d388" stroke-width="0.9" />
-      <circle cx="34" cy="11" r="1.8" fill="#f6d388" />
-      <circle cx="11" cy="34" r="1.8" fill="#f6d388" />
+  <!-- Horta Whiplash & Mucha Celestial Stained-Glass Backdrop Tapestry -->
+  <svg class="kf-tapestry" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="kfTapestryHalo" cx="50%" cy="46%" r="48%">
+        <stop offset="0%" stop-color="rgba(150, 38, 48, 0.24)" />
+        <stop offset="45%" stop-color="rgba(220, 162, 72, 0.1)" />
+        <stop offset="78%" stop-color="rgba(30, 168, 184, 0.08)" />
+        <stop offset="100%" stop-color="transparent" />
+      </radialGradient>
+    </defs>
+    <!-- Central Mucha zodiacal watermark ring -->
+    <circle cx="700" cy="430" r="340" fill="url(#kfTapestryHalo)" />
+    <circle cx="700" cy="430" r="320" fill="none" stroke="rgba(246, 211, 136, 0.16)" stroke-width="1.4" />
+    <circle cx="700" cy="430" r="292" fill="none" stroke="rgba(220, 162, 72, 0.12)" stroke-width="1" stroke-dasharray="6 8" />
+    <circle cx="700" cy="430" r="248" fill="none" stroke="rgba(70, 217, 236, 0.1)" stroke-width="1" />
+    <!-- Sweeping Horta whiplash mural tendrils -->
+    <path
+      d="M-20 760 C 180 620, 260 440, 420 490 C 560 530, 510 740, 700 680 C 890 620, 840 430, 1010 470 C 1170 510, 1240 660, 1420 590"
+      fill="none"
+      stroke="rgba(220, 162, 72, 0.14)"
+      stroke-width="2.2"
+    />
+    <path
+      d="M-20 260 C 200 180, 310 340, 480 230 C 620 140, 780 140, 920 230 C 1090 340, 1200 180, 1420 260"
+      fill="none"
+      stroke="rgba(70, 217, 236, 0.11)"
+      stroke-width="1.6"
+    />
+  </svg>
+
+  <!-- Raycast / Summon Entrance Sunburst Halo Bloom -->
+  <svg class="kf-summon-bloom" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g transform="translate(600 400)">
+      <circle r="290" fill="none" stroke="#f6d388" stroke-width="2.5" stroke-dasharray="14 8" opacity="0.85" />
+      <circle r="245" fill="none" stroke="#46d9ec" stroke-width="1.8" opacity="0.72" />
+      <circle r="200" fill="none" stroke="#c83e47" stroke-width="1.6" stroke-dasharray="4 6" opacity="0.7" />
+      {#each Array(12) as _, idx}
+        <g transform="rotate({idx * 30})">
+          <line x1="0" y1="-195" x2="0" y2="-330" stroke="#f6d388" stroke-width="1.4" opacity="0.6" />
+          <circle cx="0" cy="-290" r="6" fill="rgba(11, 27, 32, 0.9)" stroke="#f6d388" stroke-width="1.4" />
+          <circle cx="0" cy="-290" r="2.4" fill="#46d9ec" />
+        </g>
+      {/each}
+    </g>
+  </svg>
+
+  <!-- Top Mucha Laurel & Acanthus Botanical Spandrels -->
+  {#each ['tl', 'tr'] as pos}
+    <svg class="kf-corner {pos}" viewBox="0 0 96 96" aria-hidden="true">
+      <path d="M4 86 C4 26, 26 4, 86 4" fill="none" stroke="rgba(246, 211, 136, 0.88)" stroke-width="2" />
+      <path d="M11 72 C11 32, 32 11, 72 11" fill="none" stroke="rgba(150, 38, 48, 0.72)" stroke-width="1.4" />
+      <!-- Botanical laurel leaves -->
+      <path d="M10 48 C18 36, 28 32, 34 36 C28 44, 18 48, 10 48 Z" fill="rgba(220, 162, 72, 0.28)" stroke="#f6d388" stroke-width="0.9" />
+      <path d="M48 10 C36 18, 32 28, 36 34 C44 28, 48 18, 48 10 Z" fill="rgba(220, 162, 72, 0.28)" stroke="#f6d388" stroke-width="0.9" />
+      <path d="M8 58 C24 52, 32 34, 24 24 C34 32, 52 24, 58 8" fill="none" stroke="rgba(70, 217, 236, 0.68)" stroke-width="1.2" />
+      <path d="M10 10 C24 10, 30 19, 24 24 C19 30, 10 24, 10 10 Z" fill="rgba(150, 38, 48, 0.45)" stroke="#f6d388" stroke-width="1.1" />
+      <circle cx="16" cy="16" r="3.4" fill="#46d9ec" stroke="#f6d388" stroke-width="1" />
+      <circle cx="38" cy="11" r="2" fill="#f6d388" />
+      <circle cx="11" cy="38" r="2" fill="#f6d388" />
     </svg>
   {/each}
+
+  <!-- Bottom-Left Mucha Sunburst Rosette Roundel (inspired by Zodiac) -->
+  <svg class="kf-corner bl" viewBox="0 0 96 96" aria-hidden="true">
+    <path d="M4 10 C4 68, 28 92, 86 92" fill="none" stroke="rgba(246, 211, 136, 0.84)" stroke-width="1.8" />
+    <circle cx="28" cy="68" r="17" fill="rgba(12, 26, 30, 0.85)" stroke="#f6d388" stroke-width="1.3" />
+    <circle cx="28" cy="68" r="12" fill="rgba(150, 38, 48, 0.35)" stroke="#dca248" stroke-width="0.9" stroke-dasharray="2.5 2.5" />
+    <circle cx="28" cy="68" r="5.5" fill="#f6d388" stroke="#962630" stroke-width="1" />
+    <circle cx="52" cy="84" r="2" fill="#46d9ec" />
+    <circle cx="12" cy="44" r="2" fill="#f6d388" />
+  </svg>
+
+  <!-- Bottom-Right Mucha Crescent Moon & Vine Roundel -->
+  <svg class="kf-corner br" viewBox="0 0 96 96" aria-hidden="true">
+    <path d="M92 10 C92 68, 68 92, 10 92" fill="none" stroke="rgba(246, 211, 136, 0.84)" stroke-width="1.8" />
+    <circle cx="68" cy="68" r="17" fill="rgba(12, 26, 30, 0.85)" stroke="#f6d388" stroke-width="1.3" />
+    <path d="M72 57 A11 11 0 1 0 72 79 A8.5 8.5 0 1 1 72 57 Z" fill="#f6d388" stroke="#dca248" stroke-width="0.6" />
+    <circle cx="71" cy="68" r="2.2" fill="#46d9ec" />
+    <circle cx="44" cy="84" r="2" fill="#46d9ec" />
+    <circle cx="84" cy="44" r="2" fill="#f6d388" />
+  </svg>
 
   <!-- Vertical side vine rails -->
   {#each ['left', 'right'] as side}

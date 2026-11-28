@@ -24,15 +24,14 @@
   draggable="true"
   ondragstart={(e) => onDragStart(task, e)}
 >
-  <!-- Delicate Art Nouveau specimen-plate corner flourishes -->
-  <svg class="card-filigree tl" viewBox="0 0 22 22" aria-hidden="true">
-    <path d="M2 18 C2 7, 7 2, 18 2" fill="none" stroke="rgba(246, 211, 136, 0.55)" stroke-width="1.1" />
-    <circle cx="5.5" cy="5.5" r="1.2" fill="#f6d388" />
-  </svg>
-  <svg class="card-filigree br" viewBox="0 0 22 22" aria-hidden="true">
-    <path d="M2 18 C2 7, 7 2, 18 2" fill="none" stroke="rgba(246, 211, 136, 0.45)" stroke-width="1.1" />
-    <circle cx="5.5" cy="5.5" r="1.2" fill="#dca248" />
-  </svg>
+  <!-- 4-corner gilded Art Nouveau acanthus specimen-plate brackets -->
+  {#each ['tl', 'tr', 'bl', 'br'] as corner}
+    <svg class="card-filigree {corner}" viewBox="0 0 26 26" aria-hidden="true">
+      <path d="M2 22 C2 8, 8 2, 22 2" fill="none" stroke="rgba(246, 211, 136, 0.68)" stroke-width="1.2" />
+      <path d="M5 16 C5 9, 9 5, 16 5" fill="none" stroke="rgba(150, 38, 48, 0.55)" stroke-width="0.9" />
+      <circle cx="6.5" cy="6.5" r="1.4" fill="#f6d388" />
+    </svg>
+  {/each}
 
   <button
     type="button"
@@ -47,7 +46,9 @@
       </span>
     </div>
 
-    <div class="card-rule" aria-hidden="true"></div>
+    <div class="card-rule" aria-hidden="true">
+      <span class="rule-diamond">◆</span>
+    </div>
 
     <h3 class="card-title">{task.title}</h3>
 
@@ -123,12 +124,14 @@
 
   .card-filigree {
     position: absolute;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     pointer-events: none;
-    opacity: 0.72;
+    opacity: 0.78;
   }
   .card-filigree.tl { top: 2px; left: 4px; }
+  .card-filigree.tr { top: 2px; right: 2px; transform: scaleX(-1); }
+  .card-filigree.bl { bottom: 2px; left: 4px; transform: scaleY(-1); }
   .card-filigree.br { bottom: 2px; right: 2px; transform: scale(-1); }
 
   .card-body {
@@ -178,14 +181,29 @@
   }
 
   .card-rule {
+    position: relative;
     height: 1px;
     width: 100%;
+    margin: 2px 0;
     background: linear-gradient(
       90deg,
-      rgba(220, 162, 72, 0.55) 0%,
-      rgba(70, 217, 236, 0.25) 55%,
+      transparent 0%,
+      rgba(246, 211, 136, 0.65) 28%,
+      rgba(70, 217, 236, 0.45) 50%,
+      rgba(246, 211, 136, 0.65) 72%,
       transparent 100%
     );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .rule-diamond {
+    font-size: 7px;
+    color: var(--kf-ochre);
+    background: rgba(11, 27, 32, 0.9);
+    padding: 0 5px;
+    line-height: 1;
   }
 
   .card-title {

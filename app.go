@@ -41,6 +41,12 @@ type BoardErrorEvent struct {
 	Error string `json:"error"`
 }
 
+// WindowSummonedEvent is emitted whenever Kingfisher is summoned to the foreground
+// (e.g. via Raycast, Spotlight, Dock, Cmd+Tab, or kf CLI IPC).
+type WindowSummonedEvent struct {
+	Source string `json:"source"`
+}
+
 // App is the Wails-bound backend controller for Kingfisher.
 type App struct {
 	ctx       context.Context
@@ -120,11 +126,23 @@ func (a *App) startup(ctx context.Context) {
 		a.ipcServer = srv
 	}
 
+	setSummonCallback(func(source string) {
+		a.emitWindowSummoned(source)
+	})
 	hideNativeWindowButtons()
 }
 
 func (a *App) domReady(_ context.Context) {
 	hideNativeWindowButtons()
+}
+
+func (a *App) emitWindowSummoned(source string) {
+	if a.ctx == nil {
+		return
+	}
+	wailsruntime.EventsEmit(a.ctx, "window:summoned", WindowSummonedEvent{
+		Source: source,
+	})
 }
 
 func (a *App) shutdown(_ context.Context) {
@@ -189,10 +207,12 @@ func (a *App) focusWindow() {
 	if a.ctx == nil {
 		return
 	}
+	wailsruntime.Show(a.ctx)
 	wailsruntime.WindowUnminimise(a.ctx)
 	wailsruntime.WindowShow(a.ctx)
 	wailsruntime.WindowSetAlwaysOnTop(a.ctx, true)
 	wailsruntime.WindowSetAlwaysOnTop(a.ctx, false)
+	a.emitWindowSummoned("ipc")
 }
 
 func (a *App) handleExternalBoardUpdate(projectDir string, b *board.Board) {
@@ -725,10 +745,10 @@ func (a *App) UpdateScanDirs(dirs []string) AppState {
 	return a.snapshotLocked()
 }
 
-// HideWindow hides Kingfisher in the background for instant Raycast Super+F re-summon.
+// HideWindow hides Kingfisher in the background for instant Dock / Cmd+Tab / Raycast re-summon.
 func (a *App) HideWindow() {
 	if a.ctx != nil {
-		wailsruntime.WindowHide(a.ctx)
+		wailsruntime.Hide(a.ctx)
 	}
 }
 

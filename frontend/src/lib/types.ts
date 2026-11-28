@@ -116,6 +116,10 @@ export interface BoardErrorEvent {
   error: string;
 }
 
+export interface WindowSummonedEvent {
+  source: 'raycast' | 'spotlight' | 'ipc' | 'activate' | string;
+}
+
 export interface LanguageStat {
   name: string;
   color: string;
