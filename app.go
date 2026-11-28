@@ -119,6 +119,12 @@ func (a *App) startup(ctx context.Context) {
 	if srv, err := ipc.StartServer(ipc.SocketPath(), a.handleIPCMessage); err == nil {
 		a.ipcServer = srv
 	}
+
+	hideNativeWindowButtons()
+}
+
+func (a *App) domReady(_ context.Context) {
+	hideNativeWindowButtons()
 }
 
 func (a *App) shutdown(_ context.Context) {

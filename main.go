@@ -33,6 +33,7 @@ func main() {
 			OnSecondInstanceLaunch: app.onSecondInstanceLaunch,
 		},
 		OnStartup:  app.startup,
+		OnDomReady: app.domReady,
 		OnShutdown: app.shutdown,
 		Bind: []interface{}{
 			app,

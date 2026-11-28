@@ -10,6 +10,7 @@
     TaskPatch,
   } from './lib/types';
   import TabBar from './components/TabBar.svelte';
+  import MacWindowControls from './components/MacWindowControls.svelte';
   import KanbanBoard from './components/KanbanBoard.svelte';
   import HomeView from './components/HomeView.svelte';
   import QuickCaptureModal from './components/QuickCaptureModal.svelte';
@@ -445,6 +446,12 @@
       <circle cx="6" cy="200" r="2.2" fill="#46d9ec" />
     </svg>
   {/each}
+
+  <MacWindowControls
+    onHide={() => api.hideWindow()}
+    onMinimize={() => api.minimizeWindow()}
+    onMaximize={() => api.toggleMaximizeWindow()}
+  />
 
   <TabBar
     openTabs={appState.open_tabs}
