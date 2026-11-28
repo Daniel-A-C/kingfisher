@@ -128,7 +128,9 @@
             <label for="settings-opacity-range" class="field-label">
               Window Glass Opacity
             </label>
-            <span class="opacity-readout">{Math.round(opacity * 100)}%</span>
+            <span class="opacity-readout">
+              {opacity <= 0.001 ? '0% · Fully Transparent' : `${Math.round(opacity * 100)}%`}
+            </span>
           </div>
           <input
             id="settings-opacity-range"
@@ -144,10 +146,18 @@
             <button
               type="button"
               class="kf-btn preset-btn"
-              class:active-preset={opacity <= 0.05}
+              class:active-preset={opacity <= 0.001}
               onclick={() => previewOpacity(0)}
             >
-              Pure Glass (0%)
+              Fully Transparent (0%)
+            </button>
+            <button
+              type="button"
+              class="kf-btn preset-btn"
+              class:active-preset={opacity > 0.001 && opacity <= 0.35}
+              onclick={() => previewOpacity(0.25)}
+            >
+              Whisper Glass (25%)
             </button>
             <button
               type="button"
@@ -166,6 +176,9 @@
               Smoked Contrast (85%)
             </button>
           </div>
+          <p class="opacity-help">
+            At 0%, Kingfisher removes its frosted backdrop and background tint so your wallpaper shines completely through the gilded frame.
+          </p>
         </div>
 
         <label class="toggle-row">
@@ -388,6 +401,13 @@
     border-color: var(--kf-cerulean);
     background: rgba(30, 168, 184, 0.28);
     color: #ffffff;
+  }
+
+  .opacity-help {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--kf-ivory-dim);
+    line-height: 1.4;
   }
 
   .toggle-row {

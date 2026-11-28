@@ -191,6 +191,35 @@ body,
     0 0 8px rgba(0, 0, 0, 0.75);
 }
 
+/* Fully Transparent mode (0% opacity — clear glass with gilded Art Nouveau filigree) */
+.kf-shell.fully-transparent {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 2px rgba(246, 211, 136, 0.34),
+    inset 0 1px 18px rgba(70, 217, 236, 0.08);
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.95),
+    0 0 10px rgba(0, 0, 0, 0.78);
+}
+
+.kf-shell.fully-transparent .kf-tapestry {
+  opacity: 0.08;
+}
+
+.kf-shell.fully-transparent .kf-header,
+.kf-shell.fully-transparent .kf-column,
+.kf-shell.fully-transparent .kf-column.active-col,
+.kf-shell.fully-transparent .kf-tab:not(.active),
+.kf-shell.fully-transparent .kf-card,
+.kf-shell.fully-transparent .kf-card.in-flight,
+.kf-shell.fully-transparent .home-banner,
+.kf-shell.fully-transparent .medallion,
+.kf-shell.fully-transparent .project-card,
+.kf-shell.fully-transparent .aviary-arch {
+  background: transparent;
+  box-shadow: inset 0 1px 0 rgba(246, 211, 136, 0.24);
+}
+
 /* Accessibility: Reduce Motion */
 .kf-shell.reduce-motion *,
 .kf-shell.reduce-motion *::before,

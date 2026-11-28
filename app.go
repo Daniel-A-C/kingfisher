@@ -134,6 +134,10 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) domReady(_ context.Context) {
 	hideNativeWindowButtons()
+	a.mu.Lock()
+	fullyClear := a.reg != nil && a.reg.Preferences.Opacity <= 0.001
+	a.mu.Unlock()
+	setNativeWindowTransparency(fullyClear)
 }
 
 func (a *App) emitWindowSummoned(source string) {
@@ -638,6 +642,7 @@ func (a *App) UpdatePreferences(prefs registry.Preferences) AppState {
 	a.reg.Preferences = prefs
 	a.reg.ScanProjects()
 	_ = a.reg.Save()
+	setNativeWindowTransparency(prefs.Opacity <= 0.001)
 	return a.snapshotLocked()
 }
 
@@ -724,7 +729,13 @@ func (a *App) SetOpacity(opacity float64) registry.Preferences {
 	}
 	a.reg.Preferences.Opacity = opacity
 	_ = a.reg.Save()
+	setNativeWindowTransparency(opacity <= 0.001)
 	return a.reg.Preferences
+}
+
+// PreviewTransparency toggles the native macOS frosted backdrop during live Settings preview.
+func (a *App) PreviewTransparency(fullyTransparent bool) {
+	setNativeWindowTransparency(fullyTransparent)
 }
 
 // UpdateScanDirs saves scan directories and rescans for projects.

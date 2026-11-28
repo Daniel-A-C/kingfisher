@@ -38,6 +38,22 @@ static const char *kfDetectSummonSource(void) {
     return "activate";
 }
 
+static void kfSetFullyTransparent(int fullyTransparent) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        BOOL clear = (fullyTransparent != 0);
+        for (NSWindow *win in [NSApp windows]) {
+            [win setOpaque:NO];
+            [win setBackgroundColor:[NSColor clearColor]];
+            NSView *content = [win contentView];
+            for (NSView *sub in [content subviews]) {
+                if ([sub isKindOfClass:[NSVisualEffectView class]]) {
+                    [sub setHidden:clear];
+                }
+            }
+        }
+    });
+}
+
 static void kfHideNativeWindowButtons(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         for (NSWindow *win in [NSApp windows]) {
@@ -120,4 +136,14 @@ func kfOnWindowSummoned(source *C.char) {
 // notifies the Go app whenever Kingfisher is summoned (including from Raycast).
 func hideNativeWindowButtons() {
 	C.kfHideNativeWindowButtons()
+}
+
+// setNativeWindowTransparency hides macOS's NSVisualEffectView frosted backdrop
+// when fullyTransparent is true so the window becomes completely clear.
+func setNativeWindowTransparency(fullyTransparent bool) {
+	v := C.int(0)
+	if fullyTransparent {
+		v = 1
+	}
+	C.kfSetFullyTransparent(v)
 }

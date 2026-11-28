@@ -323,6 +323,7 @@
   function handleLivePreviewPrefs(partial: Partial<Preferences>) {
     if (partial.opacity !== undefined) {
       applyOpacityVar(partial.opacity);
+      api.previewTransparency(partial.opacity <= 0.001).catch(() => {});
     }
     appState = {
       ...appState,
@@ -411,6 +412,7 @@
   class="kf-shell"
   class:high-contrast={appState.preferences.high_contrast}
   class:reduce-motion={appState.preferences.reduce_motion}
+  class:fully-transparent={appState.preferences.opacity <= 0.001}
   class:summoned={summonState !== 'idle'}
   class:summoned-raycast={summonState === 'raycast'}
 >
