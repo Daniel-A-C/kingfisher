@@ -205,7 +205,7 @@
     min-height: 58px;
     background: linear-gradient(
       180deg,
-      rgba(12, 34, 35, calc(var(--kf-opacity) * 0.88 + 0.14)) 0%,
+      rgba(12, 34, 35, calc(var(--kf-opacity) * 0.85)) 0%,
       rgba(7, 21, 21, calc(var(--kf-opacity) * 0.45)) 100%
     );
   }
@@ -290,8 +290,8 @@
     border: 1px solid rgba(220, 162, 72, 0.34);
     background: linear-gradient(
       180deg,
-      rgba(14, 36, 37, calc(var(--kf-opacity) * 0.78 + 0.1)) 0%,
-      rgba(8, 22, 23, calc(var(--kf-opacity) * 0.7 + 0.08)) 100%
+      rgba(14, 36, 37, calc(var(--kf-opacity) * 0.82)) 0%,
+      rgba(8, 22, 23, calc(var(--kf-opacity) * 0.72)) 100%
     );
     box-shadow: inset 0 1px 0 rgba(246, 211, 136, 0.16);
     transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;

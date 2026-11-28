@@ -413,8 +413,8 @@
       radial-gradient(ellipse at 82% 100%, rgba(220, 162, 72, 0.16), transparent 55%),
       linear-gradient(
         180deg,
-        rgba(14, 42, 44, calc(var(--kf-opacity) * 0.88 + 0.14)) 0%,
-        rgba(8, 22, 23, calc(var(--kf-opacity) * 0.85 + 0.12)) 100%
+        rgba(14, 42, 44, calc(var(--kf-opacity) * 0.88)) 0%,
+        rgba(8, 22, 23, calc(var(--kf-opacity) * 0.82)) 100%
       );
     box-shadow:
       0 14px 36px rgba(0, 0, 0, 0.34),
@@ -474,8 +474,8 @@
     border: 1px solid var(--kf-lead-gold);
     background: linear-gradient(
       180deg,
-      rgba(13, 36, 38, calc(var(--kf-opacity) * 0.82 + 0.12)) 0%,
-      rgba(7, 20, 21, calc(var(--kf-opacity) * 0.8 + 0.1)) 100%
+      rgba(13, 36, 38, calc(var(--kf-opacity) * 0.84)) 0%,
+      rgba(7, 20, 21, calc(var(--kf-opacity) * 0.78)) 100%
     );
     box-shadow: inset 0 1px 0 rgba(246, 211, 136, 0.22);
     display: flex;
@@ -567,8 +567,8 @@
       radial-gradient(ellipse at 50% 0%, rgba(30, 168, 184, 0.14), transparent 60%),
       linear-gradient(
         180deg,
-        rgba(14, 37, 39, calc(var(--kf-opacity) * 0.86 + 0.14)) 0%,
-        rgba(8, 22, 23, calc(var(--kf-opacity) * 0.86 + 0.14)) 100%
+        rgba(14, 37, 39, calc(var(--kf-opacity) * 0.88)) 0%,
+        rgba(8, 22, 23, calc(var(--kf-opacity) * 0.82)) 100%
       );
     box-shadow:
       0 10px 26px rgba(0, 0, 0, 0.32),

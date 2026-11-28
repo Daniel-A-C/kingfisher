@@ -6,12 +6,51 @@ package main
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework Cocoa
 #import <Cocoa/Cocoa.h>
+#import <dlfcn.h>
 
 extern void kfOnWindowSummoned(char *source);
+
+typedef int CGSConnectionID;
+typedef CGSConnectionID (*kfCGSDefaultConnFn)(void);
+typedef OSStatus (*kfCGSSetBlurRadiusFn)(CGSConnectionID cid, NSInteger wid, int radius);
 
 static BOOL kfReopenObserverInstalled = NO;
 static NSString *kfLastExternalBundleID = nil;
 static CFAbsoluteTime kfLastDeactivateTime = 0;
+
+static void kfApplyWindowBlur(double blur) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        double clamped = blur < 0.0 ? 0.0 : (blur > 1.0 ? 1.0 : blur);
+        int radius = (int)(clamped * 40.0 + 0.5);
+
+        kfCGSDefaultConnFn defaultConn = (kfCGSDefaultConnFn)dlsym(RTLD_DEFAULT, "CGSDefaultConnectionForThread");
+        kfCGSSetBlurRadiusFn setBlur = (kfCGSSetBlurRadiusFn)dlsym(RTLD_DEFAULT, "CGSSetWindowBackgroundBlurRadius");
+        BOOL hasCGSBlur = (defaultConn != NULL && setBlur != NULL);
+
+        for (NSWindow *win in [NSApp windows]) {
+            [win setOpaque:NO];
+            [win setBackgroundColor:[NSColor clearColor]];
+
+            NSView *content = [win contentView];
+            for (NSView *sub in [content subviews]) {
+                if ([sub isKindOfClass:[NSVisualEffectView class]]) {
+                    if (hasCGSBlur) {
+                        // Hide macOS's murky NSVisualEffectView material so opacity scales
+                        // cleanly from 0% to 100% and blur is controlled purely by radius.
+                        [sub setHidden:YES];
+                    } else {
+                        [sub setHidden:(clamped <= 0.001)];
+                        [sub setAlphaValue:clamped];
+                    }
+                }
+            }
+
+            if (hasCGSBlur) {
+                setBlur(defaultConn(), [win windowNumber], radius);
+            }
+        }
+    });
+}
 
 static void kfRestoreMainWindow(void) {
     for (NSWindow *win in [NSApp windows]) {
@@ -36,22 +75,6 @@ static const char *kfDetectSummonSource(void) {
         }
     }
     return "activate";
-}
-
-static void kfSetFullyTransparent(int fullyTransparent) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        BOOL clear = (fullyTransparent != 0);
-        for (NSWindow *win in [NSApp windows]) {
-            [win setOpaque:NO];
-            [win setBackgroundColor:[NSColor clearColor]];
-            NSView *content = [win contentView];
-            for (NSView *sub in [content subviews]) {
-                if ([sub isKindOfClass:[NSVisualEffectView class]]) {
-                    [sub setHidden:clear];
-                }
-            }
-        }
-    });
 }
 
 static void kfHideNativeWindowButtons(void) {
@@ -138,12 +161,8 @@ func hideNativeWindowButtons() {
 	C.kfHideNativeWindowButtons()
 }
 
-// setNativeWindowTransparency hides macOS's NSVisualEffectView frosted backdrop
-// when fullyTransparent is true so the window becomes completely clear.
-func setNativeWindowTransparency(fullyTransparent bool) {
-	v := C.int(0)
-	if fullyTransparent {
-		v = 1
-	}
-	C.kfSetFullyTransparent(v)
+// setNativeWindowBlur sets the behind-window Gaussian blur intensity (0.0–1.0)
+// independently of window opacity, hiding macOS's murky NSVisualEffectView material.
+func setNativeWindowBlur(blur float64) {
+	C.kfApplyWindowBlur(C.double(blur))
 }

@@ -27,6 +27,7 @@ type ProjectEntry struct {
 // Preferences holds global UI, accessibility, auto-discovery, and local AI capture settings.
 type Preferences struct {
 	Opacity           float64        `json:"opacity"`
+	Blur              float64        `json:"blur"`
 	HighContrast      bool           `json:"high_contrast"`
 	ReduceMotion      bool           `json:"reduce_motion"`
 	ShowHeaderOpacity *bool          `json:"show_header_opacity,omitempty"`
@@ -63,10 +64,11 @@ func boolPtr(v bool) *bool { return &v }
 // DefaultPreferences returns initial Kingfisher defaults.
 func DefaultPreferences() Preferences {
 	return Preferences{
-		Opacity:           0.55,
+		Opacity:           0.35,
+		Blur:              0.25,
 		HighContrast:      false,
 		ReduceMotion:      false,
-		ShowHeaderOpacity: boolPtr(true),
+		ShowHeaderOpacity: boolPtr(false),
 		ScanDirs:          []string{"~/Documents/programs"},
 		AI:                capture.DefaultConfig(),
 	}
@@ -107,8 +109,11 @@ func Load(path string) (*Registry, error) {
 	if r.Preferences.ShowHeaderOpacity == nil {
 		r.Preferences.ShowHeaderOpacity = boolPtr(true)
 	}
-	if r.Preferences.Opacity < 0 || r.Preferences.Opacity > 0.95 {
-		r.Preferences.Opacity = 0.55
+	if r.Preferences.Opacity < 0 || r.Preferences.Opacity > 1.0 {
+		r.Preferences.Opacity = 0.35
+	}
+	if r.Preferences.Blur < 0 || r.Preferences.Blur > 1.0 {
+		r.Preferences.Blur = 0.25
 	}
 	return r, nil
 }

@@ -25,10 +25,11 @@
     boards: {},
     errors: {},
     preferences: {
-      opacity: 0.55,
+      opacity: 0.35,
+      blur: 0.25,
       high_contrast: false,
       reduce_motion: false,
-      show_header_opacity: true,
+      show_header_opacity: false,
       scan_dirs: ['~/Documents/programs'],
       ai: {
         enabled: true,
@@ -323,7 +324,9 @@
   function handleLivePreviewPrefs(partial: Partial<Preferences>) {
     if (partial.opacity !== undefined) {
       applyOpacityVar(partial.opacity);
-      api.previewTransparency(partial.opacity <= 0.001).catch(() => {});
+    }
+    if (partial.blur !== undefined) {
+      api.previewBlur(partial.blur).catch(() => {});
     }
     appState = {
       ...appState,

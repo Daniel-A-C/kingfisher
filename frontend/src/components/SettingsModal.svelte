@@ -17,7 +17,8 @@
   let dialogEl: HTMLDialogElement | undefined = $state();
   let aiStatus = $state<AIStatus | null>(null);
 
-  let opacity = $state(0.55);
+  let opacity = $state(0.35);
+  let blur = $state(0.25);
   let highContrast = $state(false);
   let reduceMotion = $state(false);
   let scanDirsRaw = $state('~/Documents/programs');
@@ -27,6 +28,11 @@
   let aiEndpoint = $state('http://127.0.0.1:11434');
   let aiModel = $state('qwen2.5:1.5b');
   let saving = $state(false);
+  let initialOpacity = 0.35;
+  let initialBlur = 0.25;
+  let initialHighContrast = false;
+  let initialReduceMotion = false;
+  let didSave = false;
 
   onMount(() => {
     if (!dialogEl) return;
@@ -37,8 +43,14 @@
     if (!dialogEl) return;
     if (open && !dialogEl.open) {
       opacity = preferences.opacity;
+      blur = preferences.blur ?? 0.25;
       highContrast = preferences.high_contrast;
       reduceMotion = preferences.reduce_motion;
+      initialOpacity = opacity;
+      initialBlur = blur;
+      initialHighContrast = highContrast;
+      initialReduceMotion = reduceMotion;
+      didSave = false;
       scanDirsRaw = (preferences.scan_dirs ?? []).join('\n');
       aiEnabled = preferences.ai?.enabled ?? true;
       aiProvider = preferences.ai?.provider || 'ollama';
@@ -56,12 +68,25 @@
 
   function handleClose() {
     if (dialogEl) dialogEl.returnValue = '';
+    if (!didSave) {
+      onLivePreview({
+        opacity: initialOpacity,
+        blur: initialBlur,
+        high_contrast: initialHighContrast,
+        reduce_motion: initialReduceMotion,
+      });
+    }
     if (open) onClose();
   }
 
   function previewOpacity(val: number) {
     opacity = val;
     onLivePreview({ opacity: val });
+  }
+
+  function previewBlur(val: number) {
+    blur = val;
+    onLivePreview({ blur: val });
   }
 
   function previewHighContrast(val: boolean) {
@@ -84,6 +109,7 @@
         .filter(Boolean);
       await onSave({
         opacity,
+        blur,
         high_contrast: highContrast,
         reduce_motion: reduceMotion,
         show_header_opacity: false,
@@ -95,6 +121,7 @@
           model: aiModel.trim(),
         },
       });
+      didSave = true;
       dialogEl?.close();
     } finally {
       saving = false;
@@ -136,8 +163,8 @@
             id="settings-opacity-range"
             type="range"
             min="0"
-            max="0.85"
-            step="0.05"
+            max="1"
+            step="0.01"
             value={opacity}
             class="settings-range"
             oninput={(e) => previewOpacity(parseFloat((e.currentTarget as HTMLInputElement).value))}
@@ -149,23 +176,31 @@
               class:active-preset={opacity <= 0.001}
               onclick={() => previewOpacity(0)}
             >
-              Fully Transparent (0%)
+              Clear (0%)
             </button>
             <button
               type="button"
               class="kf-btn preset-btn"
-              class:active-preset={opacity > 0.001 && opacity <= 0.35}
+              class:active-preset={opacity > 0.001 && opacity <= 0.15}
+              onclick={() => previewOpacity(0.1)}
+            >
+              Whisper (10%)
+            </button>
+            <button
+              type="button"
+              class="kf-btn preset-btn"
+              class:active-preset={opacity > 0.15 && opacity <= 0.35}
               onclick={() => previewOpacity(0.25)}
             >
-              Whisper Glass (25%)
+              Light (25%)
             </button>
             <button
               type="button"
               class="kf-btn preset-btn"
-              class:active-preset={opacity >= 0.45 && opacity <= 0.65}
+              class:active-preset={opacity > 0.35 && opacity <= 0.65}
               onclick={() => previewOpacity(0.55)}
             >
-              Stained Glass (55%)
+              Stained (55%)
             </button>
             <button
               type="button"
@@ -173,11 +208,69 @@
               class:active-preset={opacity >= 0.8}
               onclick={() => previewOpacity(0.85)}
             >
-              Smoked Contrast (85%)
+              Deep (85%)
             </button>
           </div>
           <p class="opacity-help">
-            At 0%, Kingfisher removes its frosted backdrop and background tint so your wallpaper shines completely through the gilded frame.
+            Scales smoothly in 1% steps from completely clear glass (0%) to solid stained glass (100%).
+          </p>
+        </div>
+
+        <div class="opacity-block blur-block">
+          <div class="opacity-label-row">
+            <label for="settings-blur-range" class="field-label">
+              Background Blur
+            </label>
+            <span class="opacity-readout">
+              {blur <= 0.001 ? '0% · Sharp' : `${Math.round(blur * 100)}%`}
+            </span>
+          </div>
+          <input
+            id="settings-blur-range"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={blur}
+            class="settings-range"
+            oninput={(e) => previewBlur(parseFloat((e.currentTarget as HTMLInputElement).value))}
+          />
+          <div class="preset-row">
+            <button
+              type="button"
+              class="kf-btn preset-btn"
+              class:active-preset={blur <= 0.001}
+              onclick={() => previewBlur(0)}
+            >
+              Sharp (0%)
+            </button>
+            <button
+              type="button"
+              class="kf-btn preset-btn"
+              class:active-preset={blur > 0.001 && blur <= 0.35}
+              onclick={() => previewBlur(0.25)}
+            >
+              Soft (25%)
+            </button>
+            <button
+              type="button"
+              class="kf-btn preset-btn"
+              class:active-preset={blur > 0.35 && blur <= 0.7}
+              onclick={() => previewBlur(0.55)}
+            >
+              Frosted (55%)
+            </button>
+            <button
+              type="button"
+              class="kf-btn preset-btn"
+              class:active-preset={blur > 0.7}
+              onclick={() => previewBlur(1)}
+            >
+              Deep Blur (100%)
+            </button>
+          </div>
+          <p class="opacity-help">
+            Controls behind-window macOS blur independently of opacity (just like iTerm2).
           </p>
         </div>
 

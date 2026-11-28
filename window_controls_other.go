@@ -6,4 +6,4 @@ func setSummonCallback(_ func(source string)) {}
 
 func hideNativeWindowButtons() {}
 
-func setNativeWindowTransparency(_ bool) {}
+func setNativeWindowBlur(_ float64) {}

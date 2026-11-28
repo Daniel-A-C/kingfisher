@@ -135,9 +135,12 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) domReady(_ context.Context) {
 	hideNativeWindowButtons()
 	a.mu.Lock()
-	fullyClear := a.reg != nil && a.reg.Preferences.Opacity <= 0.001
+	blur := 0.25
+	if a.reg != nil {
+		blur = a.reg.Preferences.Blur
+	}
 	a.mu.Unlock()
-	setNativeWindowTransparency(fullyClear)
+	setNativeWindowBlur(blur)
 }
 
 func (a *App) emitWindowSummoned(source string) {
@@ -629,8 +632,14 @@ func (a *App) UpdatePreferences(prefs registry.Preferences) AppState {
 	if prefs.Opacity < 0 {
 		prefs.Opacity = 0
 	}
-	if prefs.Opacity > 0.85 {
-		prefs.Opacity = 0.85
+	if prefs.Opacity > 1.0 {
+		prefs.Opacity = 1.0
+	}
+	if prefs.Blur < 0 {
+		prefs.Blur = 0
+	}
+	if prefs.Blur > 1.0 {
+		prefs.Blur = 1.0
 	}
 	cleanDirs := make([]string, 0, len(prefs.ScanDirs))
 	for _, d := range prefs.ScanDirs {
@@ -642,7 +651,7 @@ func (a *App) UpdatePreferences(prefs registry.Preferences) AppState {
 	a.reg.Preferences = prefs
 	a.reg.ScanProjects()
 	_ = a.reg.Save()
-	setNativeWindowTransparency(prefs.Opacity <= 0.001)
+	setNativeWindowBlur(prefs.Blur)
 	return a.snapshotLocked()
 }
 
@@ -716,7 +725,7 @@ func (a *App) DeleteTask(projectPath, taskID string) (*board.Board, error) {
 	return b, nil
 }
 
-// SetOpacity saves the user's stained-glass opacity preference (0.0 to 0.85).
+// SetOpacity saves the user's stained-glass opacity preference (0.0 to 1.0).
 func (a *App) SetOpacity(opacity float64) registry.Preferences {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -724,18 +733,17 @@ func (a *App) SetOpacity(opacity float64) registry.Preferences {
 	if opacity < 0 {
 		opacity = 0
 	}
-	if opacity > 0.85 {
-		opacity = 0.85
+	if opacity > 1.0 {
+		opacity = 1.0
 	}
 	a.reg.Preferences.Opacity = opacity
 	_ = a.reg.Save()
-	setNativeWindowTransparency(opacity <= 0.001)
 	return a.reg.Preferences
 }
 
-// PreviewTransparency toggles the native macOS frosted backdrop during live Settings preview.
-func (a *App) PreviewTransparency(fullyTransparent bool) {
-	setNativeWindowTransparency(fullyTransparent)
+// PreviewBlur updates the native macOS behind-window blur radius live during Settings preview.
+func (a *App) PreviewBlur(blur float64) {
+	setNativeWindowBlur(blur)
 }
 
 // UpdateScanDirs saves scan directories and rescans for projects.

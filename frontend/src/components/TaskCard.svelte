@@ -81,8 +81,8 @@
       radial-gradient(ellipse at 100% 0%, rgba(246, 211, 136, 0.08), transparent 60%),
       linear-gradient(
         155deg,
-        rgba(var(--kf-card-rgb), calc(var(--kf-opacity) * 0.94 + 0.16)) 0%,
-        rgba(6, 18, 19, calc(var(--kf-opacity) * 0.88 + 0.14)) 100%
+        rgba(var(--kf-card-rgb), calc(var(--kf-opacity) * 0.92)) 0%,
+        rgba(6, 18, 19, calc(var(--kf-opacity) * 0.82)) 100%
       );
     box-shadow:
       0 5px 16px rgba(0, 0, 0, 0.32),
@@ -113,8 +113,8 @@
       radial-gradient(ellipse at 100% 0%, rgba(70, 217, 236, 0.15), transparent 60%),
       linear-gradient(
         155deg,
-        rgba(14, 42, 46, calc(var(--kf-opacity) * 0.94 + 0.18)) 0%,
-        rgba(7, 22, 24, calc(var(--kf-opacity) * 0.9 + 0.14)) 100%
+        rgba(14, 42, 46, calc(var(--kf-opacity) * 0.94)) 0%,
+        rgba(7, 22, 24, calc(var(--kf-opacity) * 0.84)) 100%
       );
     box-shadow:
       0 5px 20px rgba(0, 0, 0, 0.36),

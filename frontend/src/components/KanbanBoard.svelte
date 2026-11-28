@@ -282,8 +282,8 @@
     border: 1.5px solid rgba(220, 162, 72, 0.45);
     background: linear-gradient(
       180deg,
-      rgba(var(--kf-patina-rgb), calc(var(--kf-opacity) * 0.88 + 0.08)) 0%,
-      rgba(var(--kf-moss-rgb), calc(var(--kf-opacity) * 0.78 + 0.05)) 100%
+      rgba(var(--kf-patina-rgb), calc(var(--kf-opacity) * 0.85)) 0%,
+      rgba(var(--kf-moss-rgb), calc(var(--kf-opacity) * 0.7)) 100%
     );
     box-shadow:
       inset 0 0 0 1px rgba(246, 211, 136, 0.16),
@@ -313,8 +313,8 @@
     border-color: rgba(70, 217, 236, 0.62);
     background: linear-gradient(
       180deg,
-      rgba(14, 54, 58, calc(var(--kf-opacity) * 0.86 + 0.1)) 0%,
-      rgba(var(--kf-moss-rgb), calc(var(--kf-opacity) * 0.78 + 0.05)) 100%
+      rgba(14, 54, 58, calc(var(--kf-opacity) * 0.88)) 0%,
+      rgba(var(--kf-moss-rgb), calc(var(--kf-opacity) * 0.72)) 100%
     );
     box-shadow:
       inset 0 28px 40px rgba(70, 217, 236, 0.12),

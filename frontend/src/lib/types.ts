@@ -90,6 +90,7 @@ export interface CaptureBatchResponse {
 
 export interface Preferences {
   opacity: number;
+  blur: number;
   high_contrast: boolean;
   reduce_motion: boolean;
   show_header_opacity?: boolean;
