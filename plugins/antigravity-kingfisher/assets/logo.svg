@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="kfBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#133d44" />
+      <stop offset="100%" stop-color="#07181c" />
+    </linearGradient>
+    <linearGradient id="kfWing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6ae8f7" />
+      <stop offset="55%" stop-color="#1ea8b8" />
+      <stop offset="100%" stop-color="#0b4e59" />
+    </linearGradient>
+    <linearGradient id="kfBreast" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6d388" />
+      <stop offset="100%" stop-color="#c46d34" />
+    </linearGradient>
+  </defs>
+  <!-- ~10% outer margin baked in; high-contrast on light & dark themes -->
+  <circle cx="64" cy="64" r="50" fill="url(#kfBg)" stroke="#dca248" stroke-width="4" />
+  <circle cx="64" cy="64" r="42" fill="none" stroke="#f6d388" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7" />
+  <!-- Crimson halo accent -->
+  <circle cx="64" cy="64" r="33" fill="#962630" opacity="0.32" />
+  <!-- Kingfisher diving silhouette -->
+  <path
+    d="M28 74 C44 54, 60 36, 98 30 C84 50, 74 68, 52 84 C41 90, 32 86, 28 74 Z"
+    fill="url(#kfWing)"
+    stroke="#f6d388"
+    stroke-width="2.6"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M50 70 C64 64, 80 65, 96 78 C78 85, 62 90, 48 87 Z"
+    fill="url(#kfBreast)"
+    stroke="#f6d388"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <circle cx="74" cy="46" r="3.6" fill="#fffdf7" />
+  <!-- Crown jewel -->
+  <circle cx="64" cy="14" r="4.5" fill="#46d9ec" stroke="#f6d388" stroke-width="1.8" />
+</svg>

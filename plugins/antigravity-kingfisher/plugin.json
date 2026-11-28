@@ -1,0 +1,12 @@
+{
+  "name": "kingfisher",
+  "displayName": "Kingfisher",
+  "version": "1.0.0",
+  "description": "Automatically keeps local .kingfisher.yaml task boards in sync with Antigravity: picks next tasks, moves tickets to active on start, and marks them done with agent notes on completion.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Work on the next Kingfisher task in this repo",
+    "Show all open Kingfisher tasks and priorities",
+    "Capture a new bug or feature idea into Kingfisher"
+  ]
+}
