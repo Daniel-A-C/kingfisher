@@ -6,15 +6,12 @@
     activeTab: string;
     homeActive: boolean;
     boards: Record<string, Board>;
-    opacity: number;
-    showHeaderOpacity: boolean;
     onToggleHome: () => void;
     onSelectTab: (path: string) => void;
     onCloseTab: (path: string) => void;
     onOpenSwitcher: () => void;
     onOpenSettings: () => void;
     onQuickCapture: () => void;
-    onOpacityChange: (value: number) => void;
   }
 
   let {
@@ -22,15 +19,12 @@
     activeTab,
     homeActive,
     boards,
-    opacity,
-    showHeaderOpacity,
     onToggleHome,
     onSelectTab,
     onCloseTab,
     onOpenSwitcher,
     onOpenSettings,
     onQuickCapture,
-    onOpacityChange,
   }: Props = $props();
 
   function tabLabel(path: string): { name: string; prefix: string; activeCount: number } {
@@ -144,22 +138,6 @@
   </nav>
 
   <div class="kf-actions" style="--wails-draggable: no-drag">
-    {#if showHeaderOpacity}
-      <label class="opacity-control" title="Stained-glass opacity (⌘⇧T to cycle)">
-        <span class="opacity-glyph" aria-hidden="true">◐</span>
-        <input
-          type="range"
-          min="0"
-          max="0.85"
-          step="0.05"
-          value={opacity}
-          aria-label="Background opacity"
-          oninput={(e) => onOpacityChange(parseFloat((e.currentTarget as HTMLInputElement).value))}
-        />
-        <span class="opacity-pct">{Math.round(opacity * 100)}%</span>
-      </label>
-    {/if}
-
     <button
       type="button"
       class="kf-btn settings-btn"
@@ -439,36 +417,6 @@
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-  }
-
-  .opacity-control {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    border: 1px solid rgba(220, 162, 72, 0.36);
-    background: rgba(8, 22, 22, 0.48);
-    font-size: 11px;
-    color: var(--kf-ivory-soft);
-  }
-
-  .opacity-glyph {
-    color: var(--kf-ochre);
-    font-size: 12px;
-  }
-
-  .opacity-control input[type='range'] {
-    width: 60px;
-    accent-color: var(--kf-cerulean);
-    cursor: pointer;
-  }
-
-  .opacity-pct {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    min-width: 28px;
-    text-align: right;
   }
 
   .settings-btn {

@@ -20,7 +20,6 @@
   let opacity = $state(0.55);
   let highContrast = $state(false);
   let reduceMotion = $state(false);
-  let showHeaderOpacity = $state(true);
   let scanDirsRaw = $state('~/Documents/programs');
 
   let aiEnabled = $state(true);
@@ -40,7 +39,6 @@
       opacity = preferences.opacity;
       highContrast = preferences.high_contrast;
       reduceMotion = preferences.reduce_motion;
-      showHeaderOpacity = preferences.show_header_opacity ?? true;
       scanDirsRaw = (preferences.scan_dirs ?? []).join('\n');
       aiEnabled = preferences.ai?.enabled ?? true;
       aiProvider = preferences.ai?.provider || 'ollama';
@@ -76,11 +74,6 @@
     onLivePreview({ reduce_motion: val });
   }
 
-  function previewHeaderOpacity(val: boolean) {
-    showHeaderOpacity = val;
-    onLivePreview({ show_header_opacity: val });
-  }
-
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     saving = true;
@@ -93,7 +86,7 @@
         opacity,
         high_contrast: highContrast,
         reduce_motion: reduceMotion,
-        show_header_opacity: showHeaderOpacity,
+        show_header_opacity: false,
         scan_dirs,
         ai: {
           enabled: aiEnabled,
@@ -196,18 +189,6 @@
           <span class="toggle-copy">
             <strong>Reduce Motion</strong>
             <small>Disables card hover lifts and transitions across the board.</small>
-          </span>
-        </label>
-
-        <label class="toggle-row">
-          <input
-            type="checkbox"
-            checked={showHeaderOpacity}
-            onchange={(e) => previewHeaderOpacity((e.currentTarget as HTMLInputElement).checked)}
-          />
-          <span class="toggle-copy">
-            <strong>Show Quick Opacity Slider in Header</strong>
-            <small>Keep a compact transparency slider in the top bar in addition to this menu.</small>
           </span>
         </label>
       </section>

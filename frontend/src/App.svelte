@@ -520,8 +520,6 @@
     activeTab={appState.active_tab}
     homeActive={showingHome}
     boards={appState.boards}
-    opacity={appState.preferences.opacity}
-    showHeaderOpacity={appState.preferences.show_header_opacity ?? true}
     onToggleHome={toggleHomeMenu}
     onSelectTab={handleSelectTab}
     onCloseTab={handleCloseTab}
@@ -531,7 +529,6 @@
       captureColumn = 'ready';
       captureOpen = true;
     }}
-    onOpacityChange={handleOpacityChange}
   />
 
   {#if showingHome}
