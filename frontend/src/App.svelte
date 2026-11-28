@@ -1,9 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, subscribeEvents } from './lib/api';
-  import type { AIConfig, AppState, Preferences, Task, TaskPatch } from './lib/types';
+  import type {
+    AIConfig,
+    AppState,
+    Preferences,
+    ProjectOverview,
+    Task,
+    TaskPatch,
+  } from './lib/types';
   import TabBar from './components/TabBar.svelte';
   import KanbanBoard from './components/KanbanBoard.svelte';
+  import HomeView from './components/HomeView.svelte';
   import QuickCaptureModal from './components/QuickCaptureModal.svelte';
   import TaskDetailDrawer from './components/TaskDetailDrawer.svelte';
   import ProjectSwitcherModal from './components/ProjectSwitcherModal.svelte';
@@ -33,6 +41,9 @@
   let switcherOpen = $state(false);
   let settingsOpen = $state(false);
   let captureOpen = $state(false);
+  let homeOpen = $state(false);
+  let projectOverviews = $state<ProjectOverview[]>([]);
+  let overviewsLoading = $state(false);
   let captureColumn = $state('ready');
   let selectedTaskID = $state<string | null>(null);
   let toastMessage = $state<string | null>(null);
@@ -41,6 +52,7 @@
   let activeBoard = $derived(
     appState.active_tab ? appState.boards[appState.active_tab] ?? null : null
   );
+  let showingHome = $derived(homeOpen || (!activeBoard && appState.projects.length > 0));
   let activeError = $derived(
     appState.active_tab ? appState.errors[appState.active_tab] : undefined
   );
@@ -62,12 +74,40 @@
     document.documentElement.style.setProperty('--kf-opacity', String(val));
   }
 
+  async function refreshProjectOverviews() {
+    overviewsLoading = true;
+    try {
+      projectOverviews = await api.getProjectOverviews();
+    } catch (err) {
+      showToast(`Could not load project telemetry: ${err}`);
+    } finally {
+      overviewsLoading = false;
+    }
+  }
+
+  function openHomeMenu() {
+    selectedTaskID = null;
+    homeOpen = true;
+    refreshProjectOverviews();
+  }
+
+  function toggleHomeMenu() {
+    if (showingHome && activeBoard) {
+      homeOpen = false;
+    } else {
+      openHomeMenu();
+    }
+  }
+
   onMount(() => {
     api
       .getState()
       .then((s) => {
         appState = s;
         applyOpacityVar(s.preferences.opacity);
+        if (!s.active_tab && s.projects.length > 0) {
+          refreshProjectOverviews();
+        }
       })
       .catch((err) => showToast(String(err)));
 
@@ -107,6 +147,16 @@
       if (meta && !e.shiftKey && e.key === ',') {
         e.preventDefault();
         settingsOpen = true;
+        return;
+      }
+
+      // Cmd + 0 or Cmd + Shift + H -> Toggle Home Menu
+      if (
+        (meta && !e.shiftKey && !e.altKey && e.key === '0') ||
+        (meta && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h')
+      ) {
+        e.preventDefault();
+        toggleHomeMenu();
         return;
       }
 
@@ -177,9 +227,18 @@
           captureOpen = true;
           return;
         }
+        if (e.key === 'h') {
+          e.preventDefault();
+          toggleHomeMenu();
+          return;
+        }
         if (e.key === 'Escape') {
           e.preventDefault();
-          api.hideWindow();
+          if (homeOpen && activeBoard) {
+            homeOpen = false;
+          } else {
+            api.hideWindow();
+          }
         }
       }
     };
@@ -193,12 +252,14 @@
 
   async function handleSelectTab(path: string) {
     selectedTaskID = null;
+    homeOpen = false;
     appState = await api.setActiveTab(path);
   }
 
   async function handleOpenProject(path: string) {
     try {
       selectedTaskID = null;
+      homeOpen = false;
       appState = await api.openProjectTab(path);
     } catch (err) {
       showToast(`Could not open project: ${err}`);
@@ -208,12 +269,16 @@
   async function handleCloseTab(path: string) {
     selectedTaskID = null;
     appState = await api.closeProjectTab(path);
+    if (!appState.active_tab && appState.projects.length > 0) {
+      refreshProjectOverviews();
+    }
   }
 
   async function handleInitFolder() {
     try {
       const dir = await api.pickFolder();
       if (!dir) return;
+      homeOpen = false;
       appState = await api.initProject(dir, '', '', false);
       showToast('Project ready (.kingfisher.yaml ignored via .git/info/exclude)');
     } catch (err) {
@@ -224,6 +289,9 @@
   async function handleRescan() {
     appState = await api.scanProjects();
     showToast(`Found ${appState.projects.length} Kingfisher project(s)`);
+    if (showingHome) {
+      await refreshProjectOverviews();
+    }
   }
 
   async function handleOpacityChange(value: number) {
@@ -255,6 +323,9 @@
     try {
       const res = await api.captureContext(rawContext, appState.active_tab, defaultStatus);
       appState = res.state;
+      if (showingHome) {
+        refreshProjectOverviews();
+      }
       const engine = res.used_ai ? res.model || 'local AI' : 'heuristic fallback';
       if (res.tickets.length === 1) {
         const t = res.tickets[0];
@@ -378,9 +449,11 @@
   <TabBar
     openTabs={appState.open_tabs}
     activeTab={appState.active_tab}
+    homeActive={showingHome}
     boards={appState.boards}
     opacity={appState.preferences.opacity}
     showHeaderOpacity={appState.preferences.show_header_opacity ?? true}
+    onToggleHome={toggleHomeMenu}
     onSelectTab={handleSelectTab}
     onCloseTab={handleCloseTab}
     onOpenSwitcher={() => (switcherOpen = true)}
@@ -392,7 +465,21 @@
     onOpacityChange={handleOpacityChange}
   />
 
-  {#if activeBoard}
+  {#if showingHome}
+    <HomeView
+      overviews={projectOverviews}
+      loading={overviewsLoading}
+      hasActiveTab={Boolean(activeBoard)}
+      onOpenProject={handleOpenProject}
+      onInitFolder={handleInitFolder}
+      onRefresh={handleRescan}
+      onQuickCapture={() => {
+        captureColumn = 'ready';
+        captureOpen = true;
+      }}
+      onReturnToBoard={() => (homeOpen = false)}
+    />
+  {:else if activeBoard}
     <KanbanBoard
       board={activeBoard}
       projectPath={appState.active_tab}

@@ -12,6 +12,7 @@ import (
 	"github.com/Daniel-A-C/kingfisher/internal/board"
 	"github.com/Daniel-A-C/kingfisher/internal/capture"
 	"github.com/Daniel-A-C/kingfisher/internal/ipc"
+	"github.com/Daniel-A-C/kingfisher/internal/projectinfo"
 	"github.com/Daniel-A-C/kingfisher/internal/registry"
 	"github.com/Daniel-A-C/kingfisher/internal/watcher"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -250,6 +251,26 @@ func (a *App) ScanProjects() AppState {
 	a.reg.ScanProjects()
 	_ = a.reg.Save()
 	return a.snapshotLocked()
+}
+
+// GetProjectOverviews returns Home Menu summaries (task counts + Git size & language makeup)
+// for all registered Kingfisher projects.
+func (a *App) GetProjectOverviews() []projectinfo.Overview {
+	a.mu.Lock()
+	projectsCopy := append([]registry.ProjectEntry(nil), a.reg.Projects...)
+	tabsCopy := append([]string(nil), a.reg.OpenTabs...)
+	activeTab := a.reg.ActiveTab
+	boardsCopy := make(map[string]*board.Board, len(a.boards))
+	for k, v := range a.boards {
+		boardsCopy[k] = v
+	}
+	ctx := a.ctx
+	a.mu.Unlock()
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return projectinfo.CollectAll(ctx, projectsCopy, tabsCopy, activeTab, boardsCopy)
 }
 
 // OpenProjectTab loads a project's .kingfisher.yaml, registers it, starts watching it, and switches to its tab.

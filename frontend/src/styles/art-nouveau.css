@@ -328,3 +328,16 @@ dialog::backdrop {
 .prio-high     { --prio-color: var(--kf-gold); }
 .prio-medium   { --prio-color: var(--kf-cerulean); }
 .prio-low      { --prio-color: var(--kf-sage); }
+
+/* Visually hidden utility (accessible to screen readers, revealed on focus) */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}

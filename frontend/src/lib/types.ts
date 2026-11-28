@@ -115,3 +115,46 @@ export interface BoardErrorEvent {
   path: string;
   error: string;
 }
+
+export interface LanguageStat {
+  name: string;
+  color: string;
+  bytes: number;
+  files: number;
+  percent: number;
+}
+
+export interface GitStats {
+  is_git_repo: boolean;
+  branch: string;
+  dirty_count: number;
+  commit_count: number;
+  last_commit_at: string;
+  last_commit_msg: string;
+  tracked_files: number;
+  total_bytes: number;
+  languages: LanguageStat[];
+}
+
+export interface TaskSummary {
+  total: number;
+  backlog: number;
+  ready: number;
+  active: number;
+  done: number;
+  high_priority_open: number;
+  next_task_id?: string;
+  next_task_title?: string;
+}
+
+export interface ProjectOverview {
+  slug: string;
+  name: string;
+  prefix: string;
+  path: string;
+  last_opened: string;
+  is_open: boolean;
+  is_active: boolean;
+  tasks: TaskSummary;
+  git: GitStats;
+}

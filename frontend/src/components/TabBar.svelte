@@ -4,9 +4,11 @@
   interface Props {
     openTabs: string[];
     activeTab: string;
+    homeActive: boolean;
     boards: Record<string, Board>;
     opacity: number;
     showHeaderOpacity: boolean;
+    onToggleHome: () => void;
     onSelectTab: (path: string) => void;
     onCloseTab: (path: string) => void;
     onOpenSwitcher: () => void;
@@ -18,9 +20,11 @@
   let {
     openTabs,
     activeTab,
+    homeActive,
     boards,
     opacity,
     showHeaderOpacity,
+    onToggleHome,
     onSelectTab,
     onCloseTab,
     onOpenSwitcher,
@@ -47,7 +51,15 @@
 </script>
 
 <header class="kf-header" style="--wails-draggable: drag">
-  <div class="kf-brand" title="Kingfisher">
+  <button
+    type="button"
+    class="kf-brand"
+    class:home-active={homeActive}
+    style="--wails-draggable: no-drag"
+    aria-pressed={homeActive}
+    title="Home Menu — Project Overview (⌘0 / ⌘⇧H)"
+    onclick={onToggleHome}
+  >
     <svg class="brand-crest" viewBox="0 0 38 38" aria-hidden="true">
       <circle cx="19" cy="19" r="17" fill="rgba(12, 42, 45, 0.72)" stroke="#dca248" stroke-width="1.3" />
       <circle cx="19" cy="19" r="14" fill="none" stroke="rgba(246, 211, 136, 0.35)" stroke-width="0.8" stroke-dasharray="2 2" />
@@ -78,14 +90,14 @@
     </svg>
     <div class="brand-wordmark">
       <span class="brand-name">KINGFISHER</span>
-      <span class="brand-flourish" aria-hidden="true">❧ ✦ ☙</span>
+      <span class="brand-flourish" aria-hidden="true">❧ {homeActive ? 'HOME' : '✦'} ☙</span>
     </div>
-  </div>
+  </button>
 
   <nav class="kf-tabs kf-scroll" aria-label="Project tabs" style="--wails-draggable: no-drag">
     {#each openTabs as path, i (path)}
       {@const info = tabLabel(path)}
-      {@const isActive = path === activeTab}
+      {@const isActive = !homeActive && path === activeTab}
       {@const hint = shortcutHint(i, openTabs.length)}
       <div class="kf-tab" class:active={isActive}>
         {#if isActive}
@@ -224,8 +236,33 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-right: 6px;
+    padding: 4px 10px 4px 6px;
     flex-shrink: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    color: inherit;
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  }
+
+  .kf-brand:hover {
+    border-color: rgba(246, 211, 136, 0.52);
+    background: rgba(220, 162, 72, 0.12);
+    box-shadow: 0 0 12px rgba(220, 162, 72, 0.18);
+  }
+
+  .kf-brand.home-active {
+    border-color: var(--kf-cerulean);
+    background: linear-gradient(135deg, rgba(30, 168, 184, 0.26), rgba(11, 34, 37, 0.56));
+    box-shadow:
+      0 0 16px rgba(70, 217, 236, 0.28),
+      inset 0 1px 0 rgba(246, 211, 136, 0.42);
+  }
+
+  .kf-brand:focus-visible {
+    outline: 2.5px solid var(--kf-cerulean);
+    outline-offset: 2px;
   }
 
   .brand-crest {

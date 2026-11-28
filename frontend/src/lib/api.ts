@@ -8,6 +8,7 @@ import type {
   CaptureBatchResponse,
   CaptureResponse,
   Preferences,
+  ProjectOverview,
   TaskPatch,
 } from './types';
 
@@ -18,6 +19,7 @@ declare global {
         App?: {
           GetState(): Promise<AppState>;
           ScanProjects(): Promise<AppState>;
+          GetProjectOverviews(): Promise<ProjectOverview[]>;
           OpenProjectTab(path: string): Promise<AppState>;
           CloseProjectTab(path: string): Promise<AppState>;
           SetActiveTab(path: string): Promise<AppState>;
@@ -87,6 +89,7 @@ function backend() {
 export const api = {
   getState: () => backend().GetState(),
   scanProjects: () => backend().ScanProjects(),
+  getProjectOverviews: () => backend().GetProjectOverviews(),
   openProjectTab: (path: string) => backend().OpenProjectTab(path),
   closeProjectTab: (path: string) => backend().CloseProjectTab(path),
   setActiveTab: (path: string) => backend().SetActiveTab(path),
